@@ -1,0 +1,276 @@
+/* EVSU RFID Library — unified sign-in */
+
+:root {
+    color-scheme: dark;
+    --bg0: #070a12;
+    --card: rgba(16, 23, 38, 0.92);
+    --border: rgba(255, 255, 255, 0.1);
+    --text: rgba(255, 255, 255, 0.94);
+    --muted: rgba(255, 255, 255, 0.55);
+    --primary: #7c3aed;
+    --primary-hover: #8b5cf6;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-border: rgba(239, 68, 68, 0.45);
+    --danger-text: #fca5a5;
+    --ring: 0 0 0 3px rgba(124, 58, 237, 0.35);
+    --radius: 16px;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+body.login-page {
+    font-family: var(--font);
+    line-height: 1.45;
+    color: var(--text);
+    background:
+        radial-gradient(ellipse 120% 80% at 10% -20%, rgba(124, 58, 237, 0.22), transparent 50%),
+        radial-gradient(ellipse 90% 60% at 100% 0%, rgba(56, 189, 248, 0.12), transparent 45%),
+        radial-gradient(ellipse 70% 50% at 50% 110%, rgba(45, 212, 191, 0.08), transparent 50%),
+        var(--bg0);
+}
+
+.login-wrap {
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 26rem;
+    padding: 2rem 1.75rem 1.75rem;
+    border-radius: var(--radius);
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    backdrop-filter: blur(12px);
+}
+
+.login-brand {
+    text-align: center;
+    margin-bottom: 1.75rem;
+}
+
+.login-brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.35), rgba(99, 102, 241, 0.2));
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    color: #c4b5fd;
+}
+
+.login-brand-icon svg {
+    width: 1.65rem;
+    height: 1.65rem;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.login-brand h1 {
+    margin: 0 0 0.35rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.login-brand p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.login-alert {
+    margin: 0 0 1rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-text);
+}
+
+.login-alert[hidden] {
+    display: none;
+}
+
+.login-field {
+    margin-bottom: 1.1rem;
+}
+
+.login-field label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.login-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.login-input-wrap .field-icon {
+    position: absolute;
+    left: 0.85rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.login-input-wrap .field-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.login-input-wrap input {
+    width: 100%;
+    padding: 0.72rem 0.85rem 0.72rem 2.65rem;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-input-wrap input::placeholder {
+    color: rgba(255, 255, 255, 0.32);
+}
+
+.login-input-wrap input:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.login-input-wrap input:focus {
+    outline: none;
+    border-color: rgba(124, 58, 237, 0.65);
+    box-shadow: var(--ring);
+}
+
+.login-input-wrap.has-toggle input {
+    padding-right: 2.75rem;
+}
+
+.login-toggle-pw {
+    position: absolute;
+    right: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.login-toggle-pw:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.login-toggle-pw:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+
+.login-toggle-pw svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.login-toggle-pw .icon-hide {
+    display: none;
+}
+
+.login-toggle-pw.is-visible .icon-show {
+    display: none;
+}
+
+.login-toggle-pw.is-visible .icon-hide {
+    display: block;
+}
+
+.login-submit {
+    width: 100%;
+    margin-top: 0.35rem;
+    padding: 0.78rem 1rem;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-submit:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(124, 58, 237, 0.45);
+}
+
+.login-submit:active {
+    transform: translateY(0);
+}
+
+.login-submit:focus-visible {
+    outline: none;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), var(--ring);
+}
+
+.login-foot {
+    margin: 1.25rem 0 0;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+/* Admin RFID step — reuse admin.css when loaded alongside */
+body.auth-rfid-step.login-page {
+    overflow: hidden;
+}
