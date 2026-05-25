@@ -16,6 +16,11 @@ if ($host === false || $host === '') {
 $user = getenv('DB_USER') ?: '';
 $pass = getenv('DB_PASS') ?: '';
 $name = getenv('DB_NAME') ?: '';
+
+if ($user === '' || $name === '') {
+    fwrite(STDERR, "DB_USER and DB_NAME must be set. Use GitHub secrets DB_USER, DB_PASS, DB_NAME (not DB_USERNAME, DB_PASSWORD, DB_DATABASE).\n");
+    exit(1);
+}
 $autoCreate = getenv('DB_AUTO_CREATE');
 $autoCreate = ($autoCreate === false || $autoCreate === '') ? 'false' : $autoCreate;
 

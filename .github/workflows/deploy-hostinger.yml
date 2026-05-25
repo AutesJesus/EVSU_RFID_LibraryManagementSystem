@@ -14,6 +14,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     name: Build and deploy
@@ -29,25 +32,49 @@ jobs:
           missing=0
           for name in DB_HOST DB_USER DB_PASS DB_NAME; do
             if [ -z "${!name}" ]; then
-              echo "::error::Missing secret: $name"
+              echo "::error::Missing secret: $name (use DB_USER / DB_PASS / DB_NAME — not DB_USERNAME / DB_PASSWORD / DB_DATABASE)"
               missing=1
             fi
           done
+          has_ssh=0
+          has_ftp=0
           if [ -n "${SSH_PRIVATE_KEY}" ] && [ -n "${SSH_HOST}" ] && [ -n "${SSH_USER}" ] && [ -n "${SSH_REMOTE_PATH}" ]; then
+            has_ssh=1
+          fi
+          if [ -n "${FTP_SERVER}" ] && [ -n "${FTP_USERNAME}" ] && [ -n "${FTP_PASSWORD}" ]; then
+            has_ftp=1
+          fi
+          method="${DEPLOY_METHOD:-}"
+          if [ "$method" = "ftp" ]; then
+            if [ "$has_ftp" -ne 1 ]; then
+              echo "::error::DEPLOY_METHOD=ftp but FTP secrets are missing"
+              missing=1
+            fi
+            echo "method=ftp" >> "$GITHUB_OUTPUT"
+            echo "Deploy method: FTP (lftp) — forced by DEPLOY_METHOD variable"
+          elif [ "$method" = "ssh" ]; then
+            if [ "$has_ssh" -ne 1 ]; then
+              echo "::error::DEPLOY_METHOD=ssh but SSH secrets are missing"
+              missing=1
+            fi
             echo "method=ssh" >> "$GITHUB_OUTPUT"
-            echo "Deploy method: SSH/rsync"
-          elif [ -n "${FTP_SERVER}" ] && [ -n "${FTP_USERNAME}" ] && [ -n "${FTP_PASSWORD}" ]; then
+            echo "Deploy method: SSH/rsync — forced by DEPLOY_METHOD variable"
+          elif [ "$has_ssh" -eq 1 ]; then
+            echo "method=ssh" >> "$GITHUB_OUTPUT"
+            echo "Deploy method: SSH/rsync (FTP step skipped — this is normal when SSH secrets exist)"
+            if [ "$has_ftp" -eq 1 ]; then
+              echo "::notice::Both SSH and FTP secrets are set. Using SSH. To use FTP instead, add repository variable DEPLOY_METHOD=ftp"
+            fi
+          elif [ "$has_ftp" -eq 1 ]; then
             echo "method=ftp" >> "$GITHUB_OUTPUT"
             echo "Deploy method: FTP (lftp)"
-            if [ -z "${SSH_PRIVATE_KEY}" ]; then
-              echo "::warning::SSH_PRIVATE_KEY not set — using FTP. Add SSH secrets for more reliable Hostinger deploys."
-            fi
           else
             echo "::error::Add SSH secrets (SSH_PRIVATE_KEY, SSH_HOST, SSH_USER, SSH_REMOTE_PATH) or FTP secrets (FTP_SERVER, FTP_USERNAME, FTP_PASSWORD)"
             missing=1
           fi
           exit $missing
         env:
+          DEPLOY_METHOD: ${{ vars.DEPLOY_METHOD }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
@@ -94,6 +121,10 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
           bash scripts/deploy-rsync.sh
+          echo "Verifying remote files..."
+          ssh -i "${SSH_IDENTITY_FILE}" -p "${SSH_PORT}" -o StrictHostKeyChecking=yes \
+            "${SSH_USER}@${SSH_HOST}" \
+            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/health.php && echo 'Remote OK: db.local.php, index.php, health.php present'"
 
       - name: Deploy via FTP (lftp — Hostinger)
         if: steps.secrets_check.outputs.method == 'ftp'
@@ -123,7 +154,7 @@ jobs:
               bye"
           }
           if try_dirs "${FTP_REMOTE_DIR}"; then
-            echo "Deploy succeeded."
+            echo "Deploy succeeded. Check: https://coral-seahorse-316772.hostingersite.com/health.php"
             exit 0
           fi
           echo "First path failed, trying public_html ..."

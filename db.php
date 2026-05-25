@@ -299,5 +299,35 @@ function get_pdo(): PDO
     return $pdo_singleton;
 }
 
+/**
+ * Show a readable setup error instead of a blank HTTP 500 when MySQL fails.
+ */
+function db_bootstrap_fail(Throwable $e): void
+{
+    error_log('Database bootstrap failed: ' . $e->getMessage());
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
+    }
+
+    $hasLocal = is_file(__DIR__ . '/config/db.local.php');
+    $hint = $hasLocal
+        ? 'MySQL rejected the credentials in <code>config/db.local.php</code>. In GitHub → Settings → Secrets, set <code>DB_HOST</code>, <code>DB_USER</code>, <code>DB_PASS</code>, <code>DB_NAME</code> to match hPanel exactly, then redeploy.'
+        : 'Missing <code>config/db.local.php</code>. Copy <code>config/db.local.php.example</code> on the server or add GitHub DB_* secrets and redeploy.';
+
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Database setup</title>'
+        . '<style>body{font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#222}'
+        . 'code{background:#f4f4f4;padding:.1em .35em;border-radius:4px}</style></head><body>'
+        . '<h1>Database connection failed</h1><p>' . $hint . '</p>'
+        . '<p><small>Technical detail: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</small></p>'
+        . '</body></html>';
+    exit;
+}
+
 // Bootstrap on include
-get_pdo();
+try {
+    get_pdo();
+} catch (Throwable $e) {
+    db_bootstrap_fail($e);
+}
