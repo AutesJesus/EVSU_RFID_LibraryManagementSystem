@@ -158,6 +158,8 @@ Visit:
 
 First visit creates database tables automatically (if the DB is empty).
 
+**Check deploy health:** open `https://your-site.hostingersite.com/site-test.php` — green checks mean PHP, files, and MySQL are OK. JSON detail: `health.php`, quick PHP ping: `ping.php`.
+
 **Default admin login** (change password immediately):
 
 - Username: `admin`

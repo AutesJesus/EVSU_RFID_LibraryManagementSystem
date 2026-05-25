@@ -124,7 +124,7 @@ jobs:
           echo "Verifying remote files..."
           ssh -i "${SSH_IDENTITY_FILE}" -p "${SSH_PORT}" -o StrictHostKeyChecking=yes \
             "${SSH_USER}@${SSH_HOST}" \
-            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/health.php && echo 'Remote OK: db.local.php, index.php, health.php present'"
+            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/site-test.php && echo 'Remote OK: db.local.php, index.php, site-test.php present'"
 
       - name: Deploy via FTP (lftp — Hostinger)
         if: steps.secrets_check.outputs.method == 'ftp'
@@ -154,7 +154,7 @@ jobs:
               bye"
           }
           if try_dirs "${FTP_REMOTE_DIR}"; then
-            echo "Deploy succeeded. Check: https://coral-seahorse-316772.hostingersite.com/health.php"
+            echo "Deploy succeeded. Check: https://coral-seahorse-316772.hostingersite.com/site-test.php"
             exit 0
           fi
           echo "First path failed, trying public_html ..."
