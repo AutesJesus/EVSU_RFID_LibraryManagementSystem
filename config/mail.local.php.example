@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+/** Copy to mail.local.php and fill in your Brevo credentials. */
+
+/** SMTP login from Brevo dashboard (e.g. xxxxx@smtp-brevo.com) — NOT your Gmail. */
+if (!defined('MAIL_SMTP_USER')) {
+    define('MAIL_SMTP_USER', 'xxxxxxxx@smtp-brevo.com');
+}
+
+/** Verified sender email in Brevo (e.g. your Gmail). */
+if (!defined('MAIL_FROM_EMAIL')) {
+    define('MAIL_FROM_EMAIL', 'your-verified-sender@example.com');
+}
+
+if (!defined('MAIL_SMTP_PASS')) {
+    define('MAIL_SMTP_PASS', 'your-xsmtpsib-smtp-key-here');
+}
+
+if (!defined('MAIL_DEBUG')) {
+    define('MAIL_DEBUG', false);
+}
