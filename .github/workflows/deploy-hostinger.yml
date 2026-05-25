@@ -106,6 +106,13 @@ jobs:
           DB_AUTO_CREATE: "false"
         run: php scripts/ci-write-config.php
 
+      - name: Write production email config
+        env:
+          MAIL_SMTP_USER: ${{ secrets.MAIL_SMTP_USER }}
+          MAIL_SMTP_PASS: ${{ secrets.MAIL_SMTP_PASS }}
+          MAIL_FROM_EMAIL: ${{ secrets.MAIL_FROM_EMAIL }}
+        run: php scripts/ci-write-mail-config.php
+
       - name: Deploy via SSH (rsync)
         if: steps.secrets_check.outputs.method == 'ssh'
         env:
@@ -148,7 +155,7 @@ jobs:
               open -p ${FTP_PORT} ftps://${FTP_SERVER}; \
               cd \"${dir}\" || exit 1; \
               mirror -R --verbose --exclude .git/ --exclude .github/ --exclude .ssh/ \
-                --exclude uploads/ --exclude config/mail.local.php \
+                --exclude uploads/ \
                 --exclude DEPLOYMENT.md --exclude-glob config/*.example \
                 ./ ./; \
               bye"

@@ -98,6 +98,20 @@ $checks[] = $run(
     $uploadsWritable ? 'uploads/ is writable' : 'Create uploads/ and set permissions to 755 or 775'
 );
 
+$hasMailLocal = is_file(__DIR__ . '/config/mail.local.php');
+$mailOk = false;
+$mailDetail = 'mail.local.php missing — add MAIL_SMTP_* GitHub secrets or copy mail.local.php.example on the server';
+if ($hasMailLocal) {
+    require_once __DIR__ . '/config/mail.php';
+    require_once __DIR__ . '/includes/mail.php';
+    $mailCfg = mail_is_configured();
+    $mailOk = $mailCfg['ok'];
+    $mailDetail = $mailOk
+        ? 'SMTP user and password set (Brevo)'
+        : ($mailCfg['error'] ?? 'Incomplete mail config');
+}
+$checks[] = $run('mail', 'Email (Brevo SMTP)', $mailOk, $mailDetail);
+
 $allOk = true;
 foreach ($checks as $c) {
     if (!$c['ok']) {

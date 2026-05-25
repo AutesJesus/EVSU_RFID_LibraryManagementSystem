@@ -19,7 +19,6 @@ rsync -avz \
   -e "${RSYNC_SSH}" \
   --exclude '.git/' \
   --exclude '.github/' \
-  --exclude 'config/mail.local.php' \
   --exclude 'config/db.local.php.example' \
   --exclude 'config/mail.local.php.example' \
   --exclude 'uploads/' \

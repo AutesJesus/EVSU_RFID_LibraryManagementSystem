@@ -109,7 +109,15 @@ GitHub Actions must know your FTP and database passwords. **Never** put these in
 | `DB_PASS`       | MySQL password from Step 4    |
 | `DB_NAME`       | Database name from Step 4     |
 
-Add **seven** secrets total. Names must match **exactly** (copy-paste).
+**Email (Brevo SMTP, optional but needed for OTP/login emails):**
+
+| Secret | Value |
+|--------|--------|
+| `MAIL_SMTP_USER` | Brevo SMTP login (e.g. `xxxx@smtp-brevo.com`) |
+| `MAIL_SMTP_PASS` | Brevo SMTP key (`xsmtpsib-...`) |
+| `MAIL_FROM_EMAIL` | Verified sender in Brevo (your Gmail or domain email) |
+
+Add **seven** deploy secrets minimum (FTP + DB). Add **three** more for email (10 total). Names must match **exactly** (copy-paste).
 
 ### Step 8 — Optional variable (only if deploy folder is wrong)
 
@@ -165,13 +173,13 @@ First visit creates database tables automatically (if the DB is empty).
 - Username: `admin`
 - Password: `admin123`
 
-### Step 13 — Email (one-time on server)
+### Step 13 — Email (Brevo)
 
-GitHub does **not** upload your email password.
+**Option A (recommended):** Add GitHub secrets `MAIL_SMTP_USER`, `MAIL_SMTP_PASS`, and `MAIL_FROM_EMAIL` (see table above). Redeploy — CI writes `config/mail.local.php` on the server.
 
-1. In Hostinger **File Manager** (or FileZilla), go to `public_html/config/`.
-2. Copy `mail.local.php.example` → rename to `mail.local.php`.
-3. Edit and paste your Brevo SMTP details.
+**Option B (manual):** In Hostinger **File Manager** → `public_html/config/`, copy `mail.local.php.example` → `mail.local.php` and fill in Brevo credentials.
+
+Get Brevo keys: [Brevo](https://www.brevo.com) → **SMTP & API** → SMTP key and login.
 
 ### Step 14 — Uploads folder
 
