@@ -1,0 +1,13 @@
+{
+    "name": "evsu/rfid-library",
+    "description": "EVSU RFID Library Management System",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}
