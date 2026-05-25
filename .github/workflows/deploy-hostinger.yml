@@ -38,7 +38,10 @@ jobs:
             echo "Deploy method: SSH/rsync"
           elif [ -n "${FTP_SERVER}" ] && [ -n "${FTP_USERNAME}" ] && [ -n "${FTP_PASSWORD}" ]; then
             echo "method=ftp" >> "$GITHUB_OUTPUT"
-            echo "Deploy method: FTPS"
+            echo "Deploy method: FTP (lftp)"
+            if [ -z "${SSH_PRIVATE_KEY}" ]; then
+              echo "::warning::SSH_PRIVATE_KEY not set — using FTP. Add SSH secrets for more reliable Hostinger deploys."
+            fi
           else
             echo "::error::Add SSH secrets (SSH_PRIVATE_KEY, SSH_HOST, SSH_USER, SSH_REMOTE_PATH) or FTP secrets (FTP_SERVER, FTP_USERNAME, FTP_PASSWORD)"
             missing=1
@@ -92,26 +95,40 @@ jobs:
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
           bash scripts/deploy-rsync.sh
 
-      - name: Deploy via FTPS
+      - name: Deploy via FTP (lftp — Hostinger)
         if: steps.secrets_check.outputs.method == 'ftp'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: ${{ secrets.FTP_PORT || 21 }}
-          server-dir: ${{ vars.FTP_SERVER_DIR || 'domains/coral-seahorse-316772.hostingersite.com/public_html/' }}
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.github/**
-            **/config/mail.local.php
-            **/uploads/**
-            !uploads/.gitkeep
-            **/.ftp-deploy-sync-state.json
-            **/DEPLOYMENT.md
-            **/scripts/ci-write-config.php
-            **/config/db.local.php.example
-            **/config/mail.local.php.example
-            **/.ssh/**
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PORT: ${{ secrets.FTP_PORT || '21' }}
+          FTP_REMOTE_DIR: ${{ vars.FTP_SERVER_DIR || 'domains/coral-seahorse-316772.hostingersite.com/public_html' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          try_dirs() {
+            local dir="$1"
+            echo "Uploading to remote directory: ${dir}"
+            lftp -u "${FTP_USERNAME}","${FTP_PASSWORD}" -e "\
+              set net:timeout 30; \
+              set net:max-retries 2; \
+              set ssl:verify-certificate no; \
+              set ftp:ssl-allow true; \
+              open -p ${FTP_PORT} ftps://${FTP_SERVER}; \
+              cd \"${dir}\" || exit 1; \
+              mirror -R --verbose --exclude .git/ --exclude .github/ --exclude .ssh/ \
+                --exclude uploads/ --exclude config/mail.local.php \
+                --exclude DEPLOYMENT.md --exclude-glob config/*.example \
+                ./ ./; \
+              bye"
+          }
+          if try_dirs "${FTP_REMOTE_DIR}"; then
+            echo "Deploy succeeded."
+            exit 0
+          fi
+          echo "First path failed, trying public_html ..."
+          if try_dirs "public_html"; then exit 0; fi
+          echo "Trying ./public_html ..."
+          if try_dirs "./public_html"; then exit 0; fi
+          echo "::error::FTP upload failed. Check FTP_PASSWORD in GitHub secrets and reset FTP password in Hostinger hPanel."
+          exit 1
