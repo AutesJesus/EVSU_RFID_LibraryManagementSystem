@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Build and deploy (FTPS)
+    name: Build and deploy
     runs-on: ubuntu-latest
 
     steps:
@@ -24,23 +24,38 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check required secrets
+        id: secrets_check
         run: |
           missing=0
-          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD DB_HOST DB_USER DB_PASS DB_NAME; do
+          for name in DB_HOST DB_USER DB_PASS DB_NAME; do
             if [ -z "${!name}" ]; then
-              echo "::error::Missing secret: $name — add it under Settings → Secrets and variables → Actions"
+              echo "::error::Missing secret: $name"
               missing=1
             fi
           done
+          if [ -n "${SSH_PRIVATE_KEY}" ] && [ -n "${SSH_HOST}" ] && [ -n "${SSH_USER}" ] && [ -n "${SSH_REMOTE_PATH}" ]; then
+            echo "method=ssh" >> "$GITHUB_OUTPUT"
+            echo "Deploy method: SSH/rsync"
+          elif [ -n "${FTP_SERVER}" ] && [ -n "${FTP_USERNAME}" ] && [ -n "${FTP_PASSWORD}" ]; then
+            echo "method=ftp" >> "$GITHUB_OUTPUT"
+            echo "Deploy method: FTPS"
+          else
+            echo "::error::Add SSH secrets (SSH_PRIVATE_KEY, SSH_HOST, SSH_USER, SSH_REMOTE_PATH) or FTP secrets (FTP_SERVER, FTP_USERNAME, FTP_PASSWORD)"
+            missing=1
+          fi
           exit $missing
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
           DB_NAME: ${{ secrets.DB_NAME }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_REMOTE_PATH: ${{ secrets.SSH_REMOTE_PATH }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -61,7 +76,24 @@ jobs:
           DB_AUTO_CREATE: "false"
         run: php scripts/ci-write-config.php
 
+      - name: Deploy via SSH (rsync)
+        if: steps.secrets_check.outputs.method == 'ssh'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '65002' }}
+          SSH_REMOTE_PATH: ${{ secrets.SSH_REMOTE_PATH }}
+          SSH_IDENTITY_FILE: ~/.ssh/deploy_key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          bash scripts/deploy-rsync.sh
+
       - name: Deploy via FTPS
+        if: steps.secrets_check.outputs.method == 'ftp'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -69,8 +101,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           port: ${{ secrets.FTP_PORT || 21 }}
-          # Hostinger: try ./public_html/ first; if files land in wrong folder, set variable FTP_SERVER_DIR to ./
-          server-dir: ${{ vars.FTP_SERVER_DIR || './public_html/' }}
+          server-dir: ${{ vars.FTP_SERVER_DIR || 'domains/coral-seahorse-316772.hostingersite.com/public_html/' }}
           log-level: verbose
           exclude: |
             **/.git*
@@ -83,3 +114,4 @@ jobs:
             **/scripts/ci-write-config.php
             **/config/db.local.php.example
             **/config/mail.local.php.example
+            **/.ssh/**
