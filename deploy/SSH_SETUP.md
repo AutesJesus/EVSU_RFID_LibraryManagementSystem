@@ -1,5 +1,7 @@
 # SSH deploy key (Hostinger + GitHub Actions)
 
+Keep the project `.ssh/` folder on your PC. It is gitignored (not uploaded to GitHub) but required for deploy keys.
+
 ## 1. Add public key to Hostinger
 
 hPanel → **Advanced** → **SSH Access** → **Add SSH key**
@@ -27,3 +29,5 @@ Push to `main` or run **Actions** → **Deploy to Hostinger** → **Run workflow
 Log should show: `Deploy method: SSH/rsync`.
 
 **Never commit** `.ssh/hostinger_github_actions` (private key). Only the `.pub` file is safe to share.
+
+**Do not delete** the `.ssh/` folder from your project directory.
