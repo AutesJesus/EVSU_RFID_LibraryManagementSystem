@@ -3,6 +3,7 @@ name: Deploy to Hostinger
 on:
   push:
     branches:
+      - main
       - master
   workflow_dispatch:
 
@@ -10,15 +11,36 @@ concurrency:
   group: deploy-hostinger
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Build and deploy (FTPS)
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Check required secrets
+        run: |
+          missing=0
+          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD DB_HOST DB_USER DB_PASS DB_NAME; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing secret: $name — add it under Settings → Secrets and variables → Actions"
+              missing=1
+            fi
+          done
+          exit $missing
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -46,7 +68,10 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
-          server-dir: ${{ vars.FTP_SERVER_DIR || './public_html/' }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          # Hostinger: use ./ if FTP account root is already public_html; else ./public_html/
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
+          log-level: verbose
           exclude: |
             **/.git*
             **/.github/**
