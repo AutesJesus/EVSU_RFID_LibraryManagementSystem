@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-/** Copy to db.local.php (local dev) or let CI/CD write it on deploy from GitHub secrets. */
+/** Copy to db.local.php (local dev) or let CI/CD write it on deploy from GitHub secrets.
+ *  Loaded before XAMPP defaults in database.php — overrides apply correctly. */
 
 if (!defined('DB_HOST')) {
     define('DB_HOST', 'localhost');
