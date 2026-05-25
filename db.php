@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/config/database.php';
+const DB_HOST = '127.0.0.1';
+const DB_USER = 'root';
+const DB_PASS = '';
+const DB_NAME = 'evsu_rfid_library';
 
 /** Default app admin (only inserted when admins table is empty). Change password after first login. */
 const DEFAULT_ADMIN_USERNAME = 'admin';
@@ -48,11 +51,9 @@ function get_pdo(): PDO
 
     $serverPdo = new PDO($dsnNoDb, DB_USER, DB_PASS, $options);
     $dbName = str_replace('`', '``', DB_NAME);
-    if (DB_AUTO_CREATE) {
-        $serverPdo->exec(
-            "CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-        );
-    }
+    $serverPdo->exec(
+        "CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+    );
 
     $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_NAME);
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);

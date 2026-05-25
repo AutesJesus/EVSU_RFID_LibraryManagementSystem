@@ -1,3 +1,1 @@
 config/mail.local.php
-config/db.local.php
-.ftp-deploy-sync-state.json
