@@ -32,7 +32,7 @@ jobs:
           missing=0
           for name in DB_HOST DB_USER DB_PASS DB_NAME; do
             if [ -z "${!name}" ]; then
-              echo "::error::Missing secret: $name (use DB_USER / DB_PASS / DB_NAME — not DB_USERNAME / DB_PASSWORD / DB_DATABASE)"
+              echo "::error::Missing secret: $name (set DB_USER or DB_USERNAME, DB_PASS or DB_PASSWORD, DB_NAME or DB_DATABASE)"
               missing=1
             fi
           done
@@ -76,15 +76,22 @@ jobs:
         env:
           DEPLOY_METHOD: ${{ vars.DEPLOY_METHOD }}
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER || secrets.DB_USERNAME }}
+          DB_PASS: ${{ secrets.DB_PASS || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME || secrets.DB_DATABASE }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_REMOTE_PATH: ${{ secrets.SSH_REMOTE_PATH }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 
       - name: Reject XAMPP-style database secrets
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER || secrets.DB_USERNAME }}
+          DB_NAME: ${{ secrets.DB_NAME || secrets.DB_DATABASE }}
         run: |
           set -e
           err=0
@@ -108,13 +115,6 @@ jobs:
               ;;
           esac
           exit $err
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_REMOTE_PATH: ${{ secrets.SSH_REMOTE_PATH }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -129,9 +129,9 @@ jobs:
       - name: Write production database config
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER || secrets.DB_USERNAME }}
+          DB_PASS: ${{ secrets.DB_PASS || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME || secrets.DB_DATABASE }}
           DB_AUTO_CREATE: "false"
         run: php scripts/ci-write-config.php
 
