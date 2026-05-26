@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($username === '') {
                     throw new RuntimeException('Username is required for portal login.');
                 }
-                if ($action === 'add' && $password === '') {
+                if ($action === 'add' && trim($password) === '') {
                     throw new RuntimeException('Password is required when adding a new user.');
                 }
             }
@@ -180,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $username_or_null = null;
                 if ($needs_login) {
                     $username_or_null = $username;
-                    $password_hash_or_null = $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : null;
+                    $password_hash_or_null = password_hash($password, PASSWORD_DEFAULT);
                 }
 
                 $avatar_path = null;
@@ -289,14 +289,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                if ($needs_login) {
-                    if ($password !== '') {
-                        $password_sql = ', password = :password';
-                        $params['password'] = password_hash($password, PASSWORD_DEFAULT);
-                    }
-                } else {
-                    $password_sql = ', password = NULL';
-                }
+                // Password is controlled by the user (via Forgot Password).
+                // Admin edits cannot change user passwords.
+                $password_sql = '';
 
                 $stmt = $pdo->prepare(
                     "UPDATE users
@@ -794,7 +789,7 @@ header('Content-Type: text/html; charset=utf-8');
                                     <input id="userUsername" name="username" autocomplete="username" minlength="3" value="" placeholder="Enter username">
                                 </div>
 
-                                <div class="user-field user-field--span2">
+                                <div class="user-field user-field--span2" id="userPasswordFieldWrap">
                                     <label for="userPassword">Password <span class="req" aria-hidden="true">*</span></label>
                                     <div class="user-password-wrap">
                                         <input id="userPassword" name="password" type="password" value="" minlength="6" autocomplete="new-password" placeholder="Enter password">
@@ -802,7 +797,7 @@ header('Content-Type: text/html; charset=utf-8');
                                             <svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                                         </button>
                                     </div>
-                                    <div class="hint" id="userPasswordHint">Required when adding a new user. Minimum 6 characters.</div>
+                                    <div class="hint" id="userPasswordHint">Required when adding a new user. Hidden when editing.</div>
                                 </div>
                             </div>
                         </section>
@@ -1024,9 +1019,13 @@ header('Content-Type: text/html; charset=utf-8');
                 fields.role.value = 'student';
                 fields.status.value = 'active';
                 fields.password.value = '';
+                fields.password.disabled = false;
+                if (userPasswordToggle) userPasswordToggle.disabled = false;
+                const pwWrap = document.getElementById('userPasswordFieldWrap');
+                if (pwWrap) pwWrap.hidden = false;
                 if (userModalTitle) userModalTitle.textContent = 'Add new user';
                 if (userSubmitBtn) userSubmitBtn.textContent = 'Add user';
-                userPasswordHint.textContent = 'Required when adding a new user.';
+                userPasswordHint.textContent = 'Required when adding a new user. Minimum 6 characters.';
                 userAvatarPreview.src = <?= json_encode(ui_avatar_url('User')) ?>;
                 if (userModalHeroName) userModalHeroName.textContent = 'New user';
                 if (userModalHeroSub) userModalHeroSub.textContent = 'You can edit user details anytime after creation.';
@@ -1051,9 +1050,13 @@ header('Content-Type: text/html; charset=utf-8');
                 fields.department.value = u.department || '';
                 fields.username.value = u.username || '';
                 fields.password.value = '';
+                fields.password.disabled = true;
+                if (userPasswordToggle) userPasswordToggle.disabled = true;
+                const pwWrap = document.getElementById('userPasswordFieldWrap');
+                if (pwWrap) pwWrap.hidden = true;
                 if (userModalTitle) userModalTitle.textContent = 'Edit user';
                 if (userSubmitBtn) userSubmitBtn.textContent = 'Save changes';
-                userPasswordHint.textContent = 'Leave blank to keep the current password.';
+                userPasswordHint.textContent = 'Password cannot be changed here.';
                 userAvatarPreview.src = u.avatar_src || <?= json_encode(ui_avatar_url('User')) ?>;
                 if (userModalHeroName) userModalHeroName.textContent = u.full_name || 'User';
                 if (userModalHeroSub) {
@@ -1077,6 +1080,7 @@ header('Content-Type: text/html; charset=utf-8');
 
             if (userPasswordToggle && fields.password) {
                 userPasswordToggle.addEventListener('click', function () {
+                    if (fields.password.disabled) return;
                     const isVisible = fields.password.type === 'text';
                     fields.password.type = isVisible ? 'password' : 'text';
                     setPasswordToggleState(!isVisible);
@@ -1288,6 +1292,7 @@ header('Content-Type: text/html; charset=utf-8');
             });
         })();
     </script>
+    <script src="<?= h(asset_with_version('assets/admin-compact.js')) ?>" defer></script>
     <script src="<?= h(asset_with_version('assets/admin-motion.js')) ?>" defer></script>
 </body>
 </html>

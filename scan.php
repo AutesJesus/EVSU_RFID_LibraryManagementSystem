@@ -510,28 +510,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         @media (max-width: 640px) {
             body.scanner-kiosk {
-                padding: 10px;
-                padding-top: max(10px, env(safe-area-inset-top, 0px));
-                padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+                padding: 8px;
+                font-size: 0.875rem;
+                padding-top: max(8px, env(safe-area-inset-top, 0px));
+                padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
             }
             .topbar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 0.65rem;
+            }
+            .brand h1 {
+                font-size: 1rem;
+            }
+            .brand .sub {
+                font-size: 0.78rem;
+            }
+            .btn {
+                padding: 7px 10px;
+                font-size: 0.8rem;
+                gap: 6px;
             }
             .btn-admin-top {
-                width: 100%;
-                justify-content: center;
+                width: auto;
+                min-width: 2.15rem;
+                padding: 7px 10px;
+                font-size: 0;
+                letter-spacing: 0;
+            }
+            .btn-admin-top span {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+            }
+            .btn-admin-top svg {
+                margin: 0;
+            }
+            .btn-admin-top::after {
+                content: attr(aria-label);
+                position: absolute;
+                left: 50%;
+                bottom: calc(100% + 5px);
+                transform: translateX(-50%);
+                padding: 4px 8px;
+                font-size: 0.7rem;
+                font-weight: 800;
+                white-space: nowrap;
+                color: rgba(255, 255, 255, 0.95);
+                background: #0c1220;
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                border-radius: 6px;
+                opacity: 0;
+                pointer-events: none;
+            }
+            .btn-admin-top {
+                position: relative;
+                overflow: visible;
+            }
+            .btn-admin-top:hover::after,
+            .btn-admin-top:focus-visible::after {
+                opacity: 1;
+            }
+            .card {
+                padding: 12px;
+            }
+            .card-head h2 {
+                font-size: 0.98rem;
+            }
+            .card-head .tagline {
+                font-size: 0.8rem;
             }
             .seg {
                 max-width: none;
             }
+            .seg label {
+                padding: 8px 8px;
+                font-size: 0.76rem;
+            }
             .scanner-dock {
-                min-height: 130px;
-                padding: 1rem 0.75rem;
+                min-height: 110px;
+                padding: 0.85rem 0.65rem;
+            }
+            .scanner-dock .waiting-title {
+                font-size: 0.98rem;
+            }
+            .scanner-dock .waiting-sub {
+                font-size: 0.8rem;
             }
             .scan-form input[type="text"] {
                 font-size: 16px;
+                min-height: 40px;
+            }
+            .scan-form .btn-primary {
+                padding: 9px 12px;
+                font-size: 0.85rem;
             }
             .modal-backdrop {
                 align-items: flex-end;
@@ -556,7 +632,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $admin_href = !empty($_SESSION['admin_id']) ? 'admin/index.php' : 'login.php';
             $admin_label = !empty($_SESSION['admin_id']) ? 'Dashboard' : 'Admin';
             ?>
-            <a class="btn btn-primary btn-admin-top" href="<?= htmlspecialchars($admin_href, ENT_QUOTES, 'UTF-8') ?>" title="Admin sign-in and dashboard">
+            <a class="btn btn-primary btn-admin-top" href="<?= htmlspecialchars($admin_href, ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($admin_label, ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($admin_label, ENT_QUOTES, 'UTF-8') ?>">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
                 <span><?= htmlspecialchars($admin_label, ENT_QUOTES, 'UTF-8') ?></span>
             </a>

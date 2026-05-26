@@ -539,6 +539,7 @@ header('Content-Type: text/html; charset=utf-8');
         </div>
     </div>
 
+    <script src="<?= h(asset_with_version('../admin/assets/admin-compact.js')) ?>" defer></script>
     <script src="<?= h(asset_with_version('../admin/assets/admin-motion.js')) ?>" defer></script>
     <script src="../assets/app_ajax.js"></script>
     <script>

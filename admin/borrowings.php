@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/portal_bootstrap.php';
 require_once __DIR__ . '/../includes/ajax_response.php';
+require_once __DIR__ . '/../includes/mail.php';
 portal_bootstrap();
 
 function h(string $s): string
@@ -201,6 +202,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
             $flash = 'Borrowing issued.';
+        } elseif ($action === 'send_due_reminder') {
+            $user_id = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+            $book_id = isset($_POST['book_id']) ? (int) $_POST['book_id'] : 0;
+            $due_local = isset($_POST['due_at']) ? trim((string) $_POST['due_at']) : '';
+
+            if ($user_id <= 0 || $book_id <= 0) {
+                throw new RuntimeException('Select a user and a book first.');
+            }
+            if ($due_local === '') {
+                throw new RuntimeException('Set a due date first.');
+            }
+
+            $due_dt = DateTime::createFromFormat('Y-m-d\TH:i', $due_local);
+            if ($due_dt === false) {
+                throw new RuntimeException('Invalid due date/time.');
+            }
+            $dueHuman = $due_dt->format('F j, Y g:i A');
+
+            $stmtU = $pdo->prepare('SELECT id, full_name, email, status FROM users WHERE id = :id LIMIT 1');
+            $stmtU->execute(['id' => $user_id]);
+            $u = $stmtU->fetch();
+            if ($u === false) {
+                throw new RuntimeException('User not found.');
+            }
+            if ((string) ($u['status'] ?? '') !== 'active') {
+                throw new RuntimeException('User is inactive.');
+            }
+            $toEmail = trim((string) ($u['email'] ?? ''));
+            if ($toEmail === '' || !filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('User has no valid email on file.');
+            }
+
+            $stmtB = $pdo->prepare('SELECT id, title, author FROM books WHERE id = :id LIMIT 1');
+            $stmtB->execute(['id' => $book_id]);
+            $b = $stmtB->fetch();
+            if ($b === false) {
+                throw new RuntimeException('Book not found.');
+            }
+
+            $fullName = (string) ($u['full_name'] ?? 'Library user');
+            $title = (string) ($b['title'] ?? 'your borrowed book');
+            $author = trim((string) ($b['author'] ?? ''));
+            $bookLine = $author !== '' ? ($title . ' — ' . $author) : $title;
+
+            $subject = 'EVSU Library return reminder';
+            $html = '<p>Hello ' . h($fullName) . ',</p>'
+                . '<p>This is a reminder to return:</p>'
+                . '<p><strong>' . h($bookLine) . '</strong></p>'
+                . '<p>Due date: <strong>' . h($dueHuman) . '</strong></p>'
+                . '<p>Please return the book on or before the due date to avoid penalties.</p>';
+            $text = "Hello {$fullName},\n\nReturn reminder:\n{$bookLine}\nDue date: {$dueHuman}\n\nPlease return on or before the due date.";
+
+            $send = mail_send_html($toEmail, $subject, $html, $text);
+            if (!$send['ok']) {
+                throw new RuntimeException((string) $send['error']);
+            }
+
+            $flash = 'Reminder email sent.';
         } elseif ($action === 'return') {
             $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
             if ($id <= 0) {
@@ -977,6 +1036,12 @@ header('Content-Type: text/html; charset=utf-8');
                                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                                     Default due date for students is 7 days.
                                 </p>
+                                <div style="margin-top:10px; display:flex; justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-sm btn-ghost" id="issueSendReminderBtn" disabled>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" style="width:16px;height:16px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="m22 6-10 7L2 6"/></svg>
+                                        Send due-date reminder email
+                                    </button>
+                                </div>
                             </div>
                             </div>
                         </section>
@@ -1212,6 +1277,13 @@ header('Content-Type: text/html; charset=utf-8');
                 }
             }
 
+            function issueSyncReminderBtn() {
+                var btn = document.getElementById('issueSendReminderBtn');
+                var dueInput = document.getElementById('issue_due_at');
+                var ok = !!(btn && issueState.user && issueState.book && issueState.book.available && dueInput && String(dueInput.value || '').trim());
+                if (btn) btn.disabled = !ok;
+            }
+
             function issueSyncUserPanel() {
                 var has = !!issueState.user;
                 var panel = document.getElementById('issueUserStepPanel');
@@ -1273,6 +1345,7 @@ header('Content-Type: text/html; charset=utf-8');
                 }
                 issueSyncSubmit();
                 issueRenderSummary();
+                issueSyncReminderBtn();
             }
 
             function issueClearUser() {
@@ -1284,6 +1357,7 @@ header('Content-Type: text/html; charset=utf-8');
                 if (search) search.value = '';
                 issueSyncSubmit();
                 issueRenderSummary();
+                issueSyncReminderBtn();
             }
 
             function issueSelectBook(book) {
@@ -1320,6 +1394,7 @@ header('Content-Type: text/html; charset=utf-8');
                 }
                 issueSyncSubmit();
                 issueRenderSummary();
+                issueSyncReminderBtn();
             }
 
             function issueClearBook() {
@@ -1331,6 +1406,7 @@ header('Content-Type: text/html; charset=utf-8');
                 if (search) search.value = '';
                 issueSyncSubmit();
                 issueRenderSummary();
+                issueSyncReminderBtn();
             }
 
             function issueFilterList(items, q, max) {
@@ -1450,6 +1526,7 @@ header('Content-Type: text/html; charset=utf-8');
                 });
                 issueSyncSubmit();
                 issueRenderSummary();
+                issueSyncReminderBtn();
             }
 
             function openIssueModal() {
@@ -1575,6 +1652,42 @@ header('Content-Type: text/html; charset=utf-8');
             if (issueDueInput) {
                 issueDueInput.addEventListener('change', issueRenderSummary);
                 issueDueInput.addEventListener('input', issueRenderSummary);
+                issueDueInput.addEventListener('change', issueSyncReminderBtn);
+                issueDueInput.addEventListener('input', issueSyncReminderBtn);
+            }
+
+            var issueSendReminderBtn = document.getElementById('issueSendReminderBtn');
+            if (issueSendReminderBtn) {
+                issueSendReminderBtn.addEventListener('click', function () {
+                    if (!issueState.user || !issueState.book) {
+                        showAjaxFlash('Select a user and a book first.', true);
+                        return;
+                    }
+                    var dueInput = document.getElementById('issue_due_at');
+                    var dueVal = dueInput ? String(dueInput.value || '').trim() : '';
+                    if (!dueVal) {
+                        showAjaxFlash('Set a due date first.', true);
+                        return;
+                    }
+                    var fd = new FormData();
+                    fd.set('__ajax', '1');
+                    fd.set('action', 'send_due_reminder');
+                    fd.set('user_id', String(issueState.user.id));
+                    fd.set('book_id', String(issueState.book.id));
+                    fd.set('due_at', dueVal);
+                    fetch(window.location.pathname, {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'fetch' },
+                    }).then(function (res) { return res.json(); }).then(function (data) {
+                        if (data && data.ok) {
+                            showAjaxFlash(data.message || 'Reminder email sent.', false);
+                        } else {
+                            showAjaxFlash((data && (data.message || data.error)) || 'Error', true);
+                        }
+                    }).catch(function () { showAjaxFlash('Network error.', true); });
+                });
             }
             var issueNote = document.getElementById('issue_note');
             if (issueNote) {

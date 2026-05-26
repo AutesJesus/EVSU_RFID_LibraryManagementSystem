@@ -138,5 +138,6 @@ require __DIR__ . '/portal_mobile_nav.php';
             </nav>
         </aside>
 <?php if (function_exists('portal_asset')): ?>
+        <script src="<?= h(portal_asset('assets/admin-compact.js')) ?>" defer></script>
         <script src="<?= h(portal_asset('assets/admin-motion.js')) ?>" defer></script>
 <?php endif; ?>

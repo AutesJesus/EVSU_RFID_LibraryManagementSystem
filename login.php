@@ -138,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $login_value = isset($_POST['login']) ? trim((string) $_POST['login']) : '';
 $otp_resent = isset($_GET['resent']) && $_GET['resent'] === '1';
+$pw_reset_ok = isset($_GET['pw_reset']) && $_GET['pw_reset'] === '1';
 
 header('Content-Type: text/html; charset=utf-8');
 ?>
@@ -166,6 +167,9 @@ header('Content-Type: text/html; charset=utf-8');
             </header>
 
             <p id="ajaxErr" class="login-alert" role="alert" hidden></p>
+            <?php if ($pw_reset_ok): ?>
+                <p class="login-alert login-alert-ok" role="status">Your password has been updated. Please sign in.</p>
+            <?php endif; ?>
             <?php if ($error !== ''): ?>
                 <p class="login-alert" role="alert"><?= login_h($error) ?></p>
             <?php endif; ?>
@@ -215,6 +219,14 @@ header('Content-Type: text/html; charset=utf-8');
 
                 <button class="login-submit" type="submit">Sign in</button>
             </form>
+
+            <div class="login-actions">
+                <button
+                    type="button"
+                    class="login-link-btn"
+                    onclick="window.location.href='forgot_password.php'"
+                >Forgot password?</button>
+            </div>
 
             <p class="login-foot">EVSU Library Management System</p>
         </main>

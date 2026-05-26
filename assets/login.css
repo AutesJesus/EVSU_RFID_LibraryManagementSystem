@@ -270,6 +270,25 @@ body.login-page {
     color: var(--muted);
 }
 
+.login-actions {
+    margin-top: 0.8rem;
+    text-align: center;
+}
+
+.login-link {
+    display: inline-block;
+    font-size: 0.9rem;
+    color: #a78bfa;
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+}
+
+.login-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+
 /* Admin RFID step — reuse admin.css when loaded alongside */
 body.auth-rfid-step.login-page {
     overflow: hidden;
@@ -319,39 +338,69 @@ body.auth-rfid-step.login-page {
 
 @media (max-width: 520px) {
     .login-wrap {
-        padding: 1rem 0.75rem;
+        padding: 0.75rem;
         align-items: flex-start;
-        padding-top: max(1rem, env(safe-area-inset-top, 0px));
-        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+        padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     }
 
     .login-card {
         max-width: 100%;
-        padding: 1.5rem 1.2rem 1.35rem;
-        border-radius: 14px;
+        padding: 1.25rem 1rem 1.1rem;
+        border-radius: 12px;
+    }
+
+    .login-brand {
+        margin-bottom: 1.25rem;
     }
 
     .login-brand h1 {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
 
     .login-brand p {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .login-brand-icon {
-        width: 2.85rem;
-        height: 2.85rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .login-field {
         margin-bottom: 0.85rem;
+    }
+
+    .login-field label {
+        font-size: 0.75rem;
+        margin-bottom: 0.3rem;
     }
 
     .login-input-wrap input {
         font-size: 16px;
+        padding: 0.6rem 0.75rem 0.6rem 2.4rem;
+        min-height: 40px;
+    }
+
+    .login-submit {
+        padding: 0.65rem 0.85rem;
+        font-size: 0.9rem;
+    }
+
+    .login-alert {
+        font-size: 0.8rem;
+        padding: 0.55rem 0.7rem;
+    }
+
+    .login-foot {
+        font-size: 0.74rem;
+        margin-top: 1rem;
     }
 
     .login-otp-input {
-        font-size: 1.15rem;
-        letter-spacing: 0.28em;
+        font-size: 1.05rem;
+        letter-spacing: 0.24em;
     }
 }
 

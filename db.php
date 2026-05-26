@@ -12,7 +12,7 @@ const DEFAULT_ADMIN_PASSWORD = 'admin123';
 const DEFAULT_ADMIN_RFID_TAG = '2880654146';
 
 /** Bump when schema migrations below change (re-runs once per version on the server). */
-const DB_SCHEMA_VERSION = 1;
+const DB_SCHEMA_VERSION = 2;
 
 /**
  * URL path to a file under the project web root (e.g. uploads/photo.jpg).
@@ -94,6 +94,26 @@ function get_pdo(): PDO
             avatar_path VARCHAR(255) NULL,
             status ENUM(\'active\', \'inactive\') NOT NULL DEFAULT \'active\',
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS password_resets (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            user_id INT UNSIGNED NOT NULL,
+            token_hash CHAR(64) NOT NULL,
+            requested_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME NULL,
+            request_ip VARCHAR(45) NULL,
+            user_agent VARCHAR(255) NULL,
+            INDEX idx_user_id (user_id),
+            INDEX idx_token_hash (token_hash),
+            INDEX idx_expires_at (expires_at),
+            INDEX idx_used_at (used_at),
+            CONSTRAINT fk_password_resets_user_id
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 
