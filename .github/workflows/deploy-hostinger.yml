@@ -106,6 +106,9 @@ jobs:
           DB_AUTO_CREATE: "false"
         run: php scripts/ci-write-config.php
 
+      - name: Verify production database config
+        run: php scripts/verify-deploy-config.php
+
       - name: Write production email config
         env:
           MAIL_SMTP_USER: ${{ secrets.MAIL_SMTP_USER }}
@@ -131,7 +134,7 @@ jobs:
           echo "Verifying remote files..."
           ssh -i "${SSH_IDENTITY_FILE}" -p "${SSH_PORT}" -o StrictHostKeyChecking=yes \
             "${SSH_USER}@${SSH_HOST}" \
-            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/site-test.php && echo 'Remote OK: db.local.php, index.php, site-test.php present'"
+            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/site-test.php && ! grep -q \"127.0.0.1\" ${SSH_REMOTE_PATH}/config/db.local.php && echo 'Remote OK: db.local.php, index.php, site-test.php present (not XAMPP defaults)'"
 
       - name: Deploy via FTP (lftp — Hostinger)
         if: steps.secrets_check.outputs.method == 'ftp'

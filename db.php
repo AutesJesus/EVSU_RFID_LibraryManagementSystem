@@ -11,6 +11,9 @@ const DEFAULT_ADMIN_PASSWORD = 'admin123';
 /** Default admin RFID for kiosk login step (seeded on first admin row when RFID is unset). Change in DB or admin settings if needed. */
 const DEFAULT_ADMIN_RFID_TAG = '2880654146';
 
+/** Bump when schema migrations below change (re-runs once per version on the server). */
+const DB_SCHEMA_VERSION = 1;
+
 /**
  * URL path to a file under the project web root (e.g. uploads/photo.jpg).
  * Avoids broken images when pages live in /admin/ or /faculty/ vs project root.
@@ -40,6 +43,10 @@ function get_pdo(): PDO
         return $pdo_singleton;
     }
 
+    if (defined('DATABASE_CONFIG_ERROR')) {
+        throw new RuntimeException((string) DATABASE_CONFIG_ERROR);
+    }
+
     $dsnNoDb = sprintf('mysql:host=%s;charset=utf8mb4', DB_HOST);
     $options = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -56,6 +63,13 @@ function get_pdo(): PDO
 
     $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_NAME);
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+    $schemaFlag = __DIR__ . '/config/.schema_version';
+    $schemaCurrent = is_file($schemaFlag) ? trim((string) file_get_contents($schemaFlag)) : '';
+    if ($schemaCurrent === (string) DB_SCHEMA_VERSION) {
+        $pdo_singleton = $pdo;
+        return $pdo_singleton;
+    }
 
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS admins (
@@ -295,6 +309,10 @@ function get_pdo(): PDO
         ]);
     }
 
+    if (file_put_contents($schemaFlag, (string) DB_SCHEMA_VERSION) === false) {
+        error_log('Could not write schema version flag at ' . $schemaFlag);
+    }
+
     $pdo_singleton = $pdo;
     return $pdo_singleton;
 }
@@ -306,21 +324,33 @@ function db_bootstrap_fail(Throwable $e): void
 {
     error_log('Database bootstrap failed: ' . $e->getMessage());
 
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+
     if (!headers_sent()) {
-        http_response_code(500);
+        // Avoid Hostinger's blank "HTTP ERROR 500" page when status is 500 with a body.
+        http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');
     }
 
-    $hasLocal = is_file(__DIR__ . '/config/db.local.php');
-    $hint = $hasLocal
-        ? 'MySQL rejected the credentials in <code>config/db.local.php</code>. In GitHub → Settings → Secrets, set <code>DB_HOST</code>, <code>DB_USER</code>, <code>DB_PASS</code>, <code>DB_NAME</code> to match hPanel exactly, then redeploy.'
-        : 'Missing <code>config/db.local.php</code>. Copy <code>config/db.local.php.example</code> on the server or add GitHub DB_* secrets and redeploy.';
+    $msg = $e->getMessage();
+    if (defined('DATABASE_CONFIG_ERROR')) {
+        $hint = (string) DATABASE_CONFIG_ERROR;
+    } elseif (is_file(__DIR__ . '/config/db.local.php')) {
+        $hint = 'MySQL rejected the credentials in <code>config/db.local.php</code>. In GitHub → Settings → Secrets, set '
+            . '<code>DB_HOST</code>, <code>DB_USER</code>, <code>DB_PASS</code>, <code>DB_NAME</code> to match hPanel exactly, then redeploy. '
+            . 'Do not upload files from XAMPP over the deployed site — that replaces <code>db.local.php</code> with local defaults.';
+    } else {
+        $hint = 'Missing <code>config/db.local.php</code>. Redeploy from GitHub with DB_* secrets or copy <code>config/db.local.php.example</code> on the server.';
+    }
 
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Database setup</title>'
         . '<style>body{font-family:system-ui,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#222}'
-        . 'code{background:#f4f4f4;padding:.1em .35em;border-radius:4px}</style></head><body>'
-        . '<h1>Database connection failed</h1><p>' . $hint . '</p>'
-        . '<p><small>Technical detail: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</small></p>'
+        . 'code{background:#f4f4f4;padding:.1em .35em;border-radius:4px}a{color:#1e3a5f}</style></head><body>'
+        . '<h1>Database setup required</h1><p>' . $hint . '</p>'
+        . '<p><a href="site-test.php">Open site-test.php</a> for a full checklist.</p>'
+        . '<p><small>Technical detail: ' . htmlspecialchars($msg, ENT_QUOTES, 'UTF-8') . '</small></p>'
         . '</body></html>';
     exit;
 }

@@ -55,18 +55,22 @@ $dbError = '';
 
 if ($hasDbLocal) {
     require_once __DIR__ . '/config/database.php';
+    $configError = function_exists('database_config_error') ? database_config_error() : null;
     $userSet = defined('DB_USER') && DB_USER !== '';
     $nameSet = defined('DB_NAME') && DB_NAME !== '';
+    $defsOk = $configError === null && $userSet && $nameSet;
     $checks[] = $run(
         'db_defs',
         'Database settings loaded',
-        $userSet && $nameSet,
-        $userSet && $nameSet
-            ? 'Host: ' . (defined('DB_HOST') ? DB_HOST : '?') . ', database: ' . DB_NAME . ', user: ' . DB_USER
-            : 'DB_USER or DB_NAME empty — use GitHub secrets DB_USER, DB_PASS, DB_NAME (not DB_USERNAME / DB_DATABASE)'
+        $defsOk,
+        $configError !== null
+            ? $configError
+            : ($userSet && $nameSet
+                ? 'Host: ' . (defined('DB_HOST') ? DB_HOST : '?') . ', database: ' . DB_NAME . ', user: ' . DB_USER
+                : 'DB_USER or DB_NAME empty — use GitHub secrets DB_USER, DB_PASS, DB_NAME (not DB_USERNAME / DB_DATABASE)')
     );
 
-    if ($userSet && $nameSet) {
+    if ($defsOk) {
         try {
             $pdo = new PDO(
                 sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_NAME),

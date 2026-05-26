@@ -9,8 +9,14 @@ declare(strict_types=1);
 
 $host = getenv('DB_HOST');
 if ($host === false || $host === '') {
-    fwrite(STDERR, "DB_HOST not set; skipping db.local.php generation.\n");
-    exit(0);
+    fwrite(STDERR, "DB_HOST not set; cannot deploy without database secrets.\n");
+    exit(1);
+}
+
+$hostLower = strtolower($host);
+if (in_array($hostLower, ['127.0.0.1', '::1'], true)) {
+    fwrite(STDERR, "DB_HOST must not be 127.0.0.1 (XAMPP). Use the MySQL host from Hostinger hPanel (often localhost).\n");
+    exit(1);
 }
 
 $user = getenv('DB_USER') ?: '';
@@ -19,6 +25,11 @@ $name = getenv('DB_NAME') ?: '';
 
 if ($user === '' || $name === '') {
     fwrite(STDERR, "DB_USER and DB_NAME must be set. Use GitHub secrets DB_USER, DB_PASS, DB_NAME (not DB_USERNAME, DB_PASSWORD, DB_DATABASE).\n");
+    exit(1);
+}
+
+if ($user === 'root') {
+    fwrite(STDERR, "DB_USER must be the Hostinger MySQL user (u123456789_...), not root.\n");
     exit(1);
 }
 $autoCreate = getenv('DB_AUTO_CREATE');

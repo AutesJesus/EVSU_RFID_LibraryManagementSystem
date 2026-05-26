@@ -1,5 +1,6 @@
 config/mail.local.php
 config/db.local.php
+config/.schema_version
 .ftp-deploy-sync-state.json
 # Keep .ssh/ folder locally; only ignore key files (see .ssh/README.txt)
 .ssh/*
