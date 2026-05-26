@@ -56,6 +56,53 @@ function is_valid_date(string $s): bool
     return $dt !== false && $dt->format('Y-m-d') === $s;
 }
 
+function logs_qs(array $overrides = []): array
+{
+    global $q, $mode_f, $date_from, $date_to, $role_f, $dept_f, $cat_f;
+    $merged = array_merge([
+        'q' => $q,
+        'mode' => $mode_f,
+        'from' => $date_from,
+        'to' => $date_to,
+        'role' => $role_f,
+        'dept' => $dept_f,
+        'cat' => $cat_f,
+    ], $overrides);
+    foreach ($merged as $k => $v) {
+        if ($v === null || $v === '') {
+            unset($merged[$k]);
+        }
+    }
+    return $merged;
+}
+
+function log_is_unknown_rfid(array $row): bool
+{
+    $note = strtolower(trim((string) ($row['note'] ?? '')));
+    return ($row['user_id'] ?? null) === null && $note === 'unknown_rfid';
+}
+
+function log_mode_badge(string $mode): string
+{
+    $m = strtolower(trim($mode));
+    if ($m === 'entry') {
+        return '<span class="pill ok">ENTRY</span>';
+    }
+    if ($m === 'exit') {
+        return '<span class="pill bad">EXIT</span>';
+    }
+    return '<span class="pill">' . h(strtoupper($mode)) . '</span>';
+}
+
+function log_user_label(array $row): string
+{
+    if (log_is_unknown_rfid($row)) {
+        return 'Unknown RFID';
+    }
+    $name = trim((string) ($row['full_name'] ?? ''));
+    return $name !== '' ? $name : '—';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = isset($_POST['action']) ? (string) $_POST['action'] : '';
 
@@ -104,6 +151,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare('DELETE FROM entry_exit_logs WHERE id = :id');
             $stmt->execute(['id' => $id]);
             $flash = 'Log deleted.';
+        } elseif ($action === 'delete_bulk') {
+            $rawIds = $_POST['ids'] ?? [];
+            if (!is_array($rawIds)) {
+                throw new RuntimeException('No logs selected.');
+            }
+            $ids = [];
+            foreach ($rawIds as $rawId) {
+                $id = (int) $rawId;
+                if ($id > 0) {
+                    $ids[$id] = $id;
+                }
+            }
+            $ids = array_values($ids);
+            if ($ids === []) {
+                throw new RuntimeException('No logs selected.');
+            }
+            if (count($ids) > 500) {
+                throw new RuntimeException('You can delete at most 500 logs at once.');
+            }
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $pdo->prepare('DELETE FROM entry_exit_logs WHERE id IN (' . $placeholders . ')');
+            $stmt->execute($ids);
+            $n = $stmt->rowCount();
+            $flash = $n . ' log' . ($n === 1 ? '' : 's') . ' deleted.';
         }
     } catch (Throwable $e) {
         $error = $e->getMessage();
@@ -116,14 +187,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $q = isset($_GET['q']) ? trim((string) $_GET['q']) : '';
 $mode_f = isset($_GET['mode']) ? strtolower(trim((string) $_GET['mode'])) : '';
+$role_f = isset($_GET['role']) ? strtolower(trim((string) $_GET['role'])) : '';
+$dept_f = isset($_GET['dept']) ? trim((string) $_GET['dept']) : '';
+$cat_f = isset($_GET['cat']) ? strtolower(trim((string) $_GET['cat'])) : '';
 $date_from = isset($_GET['from']) ? trim((string) $_GET['from']) : '';
 $date_to = isset($_GET['to']) ? trim((string) $_GET['to']) : '';
 $print = isset($_GET['print']) && (string)$_GET['print'] === '1';
 $edit_id = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
 
 if (!in_array($mode_f, ['', 'entry', 'exit'], true)) $mode_f = '';
+if (!in_array($role_f, ['', 'student', 'faculty', 'librarian'], true)) $role_f = '';
+if ($cat_f !== 'unknown') $cat_f = '';
 if ($date_from !== '' && !is_valid_date($date_from)) $date_from = '';
 if ($date_to !== '' && !is_valid_date($date_to)) $date_to = '';
+if ($cat_f === 'unknown') {
+    $role_f = '';
+    $dept_f = '';
+}
 
 $edit_log = null;
 if ($edit_id > 0) {
@@ -155,6 +235,30 @@ if ($date_to !== '') {
     $whereParts[] = 'DATE(l.scanned_at) <= :to';
     $params['to'] = $date_to;
 }
+if ($cat_f === 'unknown') {
+    $whereParts[] = "(l.user_id IS NULL AND l.note = 'unknown_rfid')";
+} elseif ($role_f !== '') {
+    $whereParts[] = 'u.role = :role';
+    $params['role'] = $role_f;
+}
+if ($dept_f !== '' && $cat_f !== 'unknown') {
+    $whereParts[] = 'u.department = :dept';
+    $params['dept'] = $dept_f;
+}
+
+$dept_options = [];
+try {
+    $deptStmt = $pdo->query(
+        "SELECT DISTINCT u.department
+         FROM entry_exit_logs l
+         INNER JOIN users u ON u.id = l.user_id
+         WHERE u.department IS NOT NULL AND TRIM(u.department) <> ''
+         ORDER BY u.department ASC"
+    );
+    $dept_options = array_map('strval', $deptStmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+} catch (Throwable $e) {
+    $dept_options = [];
+}
 
 $where = '';
 if ($whereParts) {
@@ -173,12 +277,7 @@ $stmt->execute($params);
 $logs = $stmt->fetchAll();
 
 // Base querystring for links (filters preserved)
-$baseQs = [
-    'q' => $q,
-    'mode' => $mode_f,
-    'from' => $date_from,
-    'to' => $date_to,
-];
+$baseQs = logs_qs();
 
 header('Content-Type: text/html; charset=utf-8');
 ?>
@@ -201,6 +300,8 @@ header('Content-Type: text/html; charset=utf-8');
                         Filters:
                         <?= $q !== '' ? ' q="' . h($q) . '"' : ' all' ?>
                         <?= $mode_f !== '' ? ' · mode=' . h($mode_f) : '' ?>
+                        <?= $cat_f === 'unknown' ? ' · unknown RFID' : ($role_f !== '' ? ' · role=' . h($role_f) : '') ?>
+                        <?= $dept_f !== '' ? ' · dept=' . h($dept_f) : '' ?>
                         <?= $date_from !== '' ? ' · from=' . h($date_from) : '' ?>
                         <?= $date_to !== '' ? ' · to=' . h($date_to) : '' ?>
                     </div>
@@ -231,12 +332,12 @@ header('Content-Type: text/html; charset=utf-8');
                             <tr><td colspan="8" class="muted">No logs found.</td></tr>
                         <?php else: ?>
                             <?php foreach ($logs as $l): ?>
-                                <tr>
+                                <tr<?= log_is_unknown_rfid($l) ? ' class="log-row-unknown"' : '' ?>>
                                     <td><?= (int)$l['id'] ?></td>
                                     <td><?= h((string)$l['scanned_at']) ?></td>
-                                    <td><?= h(strtoupper((string)$l['mode'])) ?></td>
+                                    <td><?= log_mode_badge((string)$l['mode']) ?></td>
                                     <td><?= h((string)$l['rfid_tag']) ?></td>
-                                    <td><?= h((string)($l['full_name'] ?? '—')) ?></td>
+                                    <td><?= h(log_user_label($l)) ?></td>
                                     <td><?= h((string)($l['role'] ?? '')) ?></td>
                                     <td><?= h((string)($l['department'] ?? '')) ?></td>
                                     <td><?= h((string)($l['note'] ?? '')) ?></td>
@@ -275,16 +376,25 @@ header('Content-Type: text/html; charset=utf-8');
                 <?php endif; ?>
 
                 <div class="grid directory-list-grid">
-                    <section class="card inventory-card directory-list-card" aria-label="Logs list">
-                    <div class="card-body inventory-toolbar directory-list-toolbar">
-                        <div class="card-header-bar">
-                            <h2 class="card-title inventory-title" style="margin:0;">Logs</h2>
-                            <div class="admin-actions" aria-label="Print actions">
-                                <a class="btn btn-ghost" href="logs.php<?= h(qs($baseQs, ['print' => '1'])) ?>" target="_blank" rel="noopener">Print</a>
-                                <a class="btn btn-ghost" href="logs.php<?= h(qs($baseQs, ['print' => '1'])) ?>" target="_blank" rel="noopener">Print filtered</a>
-                            </div>
+                    <section class="card inventory-card directory-list-card logs-list-card" aria-label="Logs list" id="logsListCard">
+                    <div class="card-body inventory-toolbar directory-list-toolbar logs-toolbar-shell" id="logsToolbarShell">
+
+                        <div class="logs-toolbar-toggle-bar">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-ghost logs-toggle-tools-btn"
+                                id="logsToggleTools"
+                                aria-expanded="true"
+                                aria-controls="logsToolsPanel"
+                            >
+                                <svg class="btn-ico logs-toggle-tools-ico" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m6 9 6 6 6-6"/>
+                                </svg>
+                            </button>
+                            <span class="muted logs-toolbar-toggle-hint" id="logsToggleToolsHint">Show list only</span>
                         </div>
 
+                        <div id="logsToolsPanel" class="logs-tools-panel">
                         <form method="get" action="" class="control-bar" role="search" aria-label="Logs controls">
                             <div class="inventory-search-wrap">
                                 <span class="inventory-search-ico" aria-hidden="true">
@@ -306,39 +416,89 @@ header('Content-Type: text/html; charset=utf-8');
                             <div class="control-right" aria-label="Filters">
                                 <input id="from" name="from" type="date" value="<?= h($date_from) ?>" aria-label="From date">
                                 <input id="to" name="to" type="date" value="<?= h($date_to) ?>" aria-label="To date">
-
+                                
                                 <button class="btn btn-primary" type="submit">Apply</button>
+
+                                <a class="btn btn-ghost" href="logs.php<?= h(qs($baseQs, ['print' => '1'])) ?>" target="_blank" rel="noopener">Print</a>
+                                <a class="btn btn-ghost" href="logs.php<?= h(qs($baseQs, ['print' => '1'])) ?>" target="_blank" rel="noopener">Print filtered</a>
                                 <a
                                     id="logsClear"
-                                    class="btn btn-ghost inventory-clear<?= ($q === '' && $date_from === '' && $date_to === '' && $mode_f === '') ? ' is-hidden' : '' ?>"
+                                    class="btn btn-ghost inventory-clear<?= ($q === '' && $date_from === '' && $date_to === '' && $mode_f === '' && $role_f === '' && $dept_f === '' && $cat_f === '') ? ' is-hidden' : '' ?>"
                                     href="logs.php"
                                 >Clear</a>
                             </div>
                         </form>
 
-                        <nav class="inventory-tabs" aria-label="Log mode filters">
+                        <nav class="inventory-tabs logs-toolbar-tabs" aria-label="Log filters">
                             <?php
-                                $mkMode = function (string $label, string $v) use ($q, $date_from, $date_to, $mode_f): void {
-                                    $qs = [];
-                                    if ($q !== '') $qs['q'] = $q;
-                                    if ($date_from !== '') $qs['from'] = $date_from;
-                                    if ($date_to !== '') $qs['to'] = $date_to;
-                                    if ($v !== '') $qs['mode'] = $v;
+                                $mkRole = function (string $label, string $v) use ($role_f, $cat_f): void {
+                                    $qs = logs_qs(['role' => $v, 'cat' => '']);
+                                    $is = $cat_f === '' && (($v === '' && $role_f === '') || ($role_f === $v));
+                                    $cls = $is ? 'btn btn-sm btn-primary' : 'btn btn-sm';
+                                    echo '<a class="' . $cls . '" href="logs.php?' . h(http_build_query($qs)) . '">' . h($label) . '</a>';
+                                };
+                                $mkMode = function (string $label, string $v) use ($mode_f): void {
+                                    $qs = logs_qs(['mode' => $v]);
                                     $is = ($v === '' && $mode_f === '') || ($mode_f === $v);
                                     $cls = $is ? 'btn btn-sm btn-primary' : 'btn btn-sm';
                                     echo '<a class="' . $cls . '" href="logs.php?' . h(http_build_query($qs)) . '">' . h($label) . '</a>';
                                 };
+                                $unknownQs = logs_qs(['cat' => 'unknown', 'role' => '', 'dept' => '']);
+                                $unknownActive = $cat_f === 'unknown';
+                            ?>
+                            <span class="muted borrow-toolbar-divider" aria-hidden="true">Role</span>
+                            <?php
+                                $mkRole('All', '');
+                                $mkRole('Student', 'student');
+                                $mkRole('Faculty', 'faculty');
+                                $mkRole('Librarian', 'librarian');
+                            ?>
+                            <span class="muted borrow-toolbar-divider" aria-hidden="true">Mode</span>
+                            <?php
                                 $mkMode('All', '');
                                 $mkMode('Entry', 'entry');
                                 $mkMode('Exit', 'exit');
                             ?>
+                            <div class="logs-toolbar-end">
+                                <span class="muted borrow-toolbar-divider" aria-hidden="true">Department</span>
+                                <form method="get" action="logs.php" class="logs-dept-form" id="logsDeptForm">
+                                    <?php if ($q !== ''): ?><input type="hidden" name="q" value="<?= h($q) ?>"><?php endif; ?>
+                                    <?php if ($mode_f !== ''): ?><input type="hidden" name="mode" value="<?= h($mode_f) ?>"><?php endif; ?>
+                                    <?php if ($role_f !== ''): ?><input type="hidden" name="role" value="<?= h($role_f) ?>"><?php endif; ?>
+                                    <?php if ($cat_f !== ''): ?><input type="hidden" name="cat" value="<?= h($cat_f) ?>"><?php endif; ?>
+                                    <?php if ($date_from !== ''): ?><input type="hidden" name="from" value="<?= h($date_from) ?>"><?php endif; ?>
+                                    <?php if ($date_to !== ''): ?><input type="hidden" name="to" value="<?= h($date_to) ?>"><?php endif; ?>
+                                    <label class="sr-only" for="logsDept">Department</label>
+                                    <select id="logsDept" class="inventory-filter-select logs-dept-select" name="dept"<?= $cat_f === 'unknown' ? ' disabled' : '' ?>>
+                                        <option value="">All departments</option>
+                                        <?php foreach ($dept_options as $deptOpt): ?>
+                                            <option value="<?= h($deptOpt) ?>"<?= $dept_f === $deptOpt ? ' selected' : '' ?>><?= h($deptOpt) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </form>
+                                <a class="<?= $unknownActive ? 'btn btn-sm btn-primary' : 'btn btn-sm' ?>" href="logs.php?<?= h(http_build_query($unknownQs)) ?>">Unknown RFID</a>
+                            </div>
                         </nav>
+
+                        <div class="logs-bulk-bar" id="logsBulkBar" aria-label="Bulk actions">
+                            <label class="logs-bulk-check">
+                                <input type="checkbox" id="logsSelectAll" aria-label="Select all logs on this page">
+                                <span>Select all on page</span>
+                            </label>
+                            <span class="muted logs-bulk-count" id="logsBulkCount">0 selected</span>
+                            <button type="button" class="btn btn-sm btn-danger" id="logsDeleteSelected" disabled>Delete selected</button>
+                        </div>
+                        </div><!-- /#logsToolsPanel -->
+
                     </div>
 
                     <div class="table-wrap directory-list-scroll">
                         <table class="directory-data-table">
                             <thead>
                                 <tr>
+                                    <th class="logs-col-check" scope="col">
+                                        <span class="sr-only">Select</span>
+                                    </th>
                                     <th>ID</th>
                                     <th>Scanned at</th>
                                     <th>Mode</th>
@@ -352,15 +512,28 @@ header('Content-Type: text/html; charset=utf-8');
                             </thead>
                             <tbody>
                             <?php if (!$logs): ?>
-                                <tr><td colspan="9" class="muted">No logs found.</td></tr>
+                                <tr><td colspan="10" class="muted">No logs found.</td></tr>
                             <?php else: ?>
                                 <?php foreach ($logs as $l): ?>
-                                    <tr>
+                                    <tr<?= log_is_unknown_rfid($l) ? ' class="log-row-unknown"' : '' ?> data-log-id="<?= (int)$l['id'] ?>">
+                                        <td class="logs-col-check">
+                                            <input
+                                                type="checkbox"
+                                                class="logs-row-check"
+                                                value="<?= (int)$l['id'] ?>"
+                                                aria-label="Select log #<?= (int)$l['id'] ?>"
+                                            >
+                                        </td>
                                         <td><?= (int)$l['id'] ?></td>
                                         <td><?= h((string)$l['scanned_at']) ?></td>
-                                        <td><?= h(strtoupper((string)$l['mode'])) ?></td>
+                                        <td><?= log_mode_badge((string)$l['mode']) ?></td>
                                         <td><?= h((string)$l['rfid_tag']) ?></td>
-                                        <td><?= h((string)($l['full_name'] ?? '—')) ?></td>
+                                        <td>
+                                            <?= h(log_user_label($l)) ?>
+                                            <?php if (log_is_unknown_rfid($l)): ?>
+                                                <span class="pill warn" style="margin-left:6px;">Unregistered</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= h((string)($l['role'] ?? '')) ?></td>
                                         <td><?= h((string)($l['department'] ?? '')) ?></td>
                                         <td><?= h((string)($l['note'] ?? '')) ?></td>
@@ -441,7 +614,7 @@ header('Content-Type: text/html; charset=utf-8');
         </div>
     </div>
 
-    <!-- Delete modal -->
+    <!-- Delete modal (single or bulk) -->
     <div id="deleteModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="delTitle">
         <div class="modal-panel" style="width:min(560px,96vw);">
             <div class="modal-header">
@@ -452,24 +625,81 @@ header('Content-Type: text/html; charset=utf-8');
             </div>
             <div class="modal-body">
                 <p class="muted" id="delSummary" style="margin:0 0 12px;">—</p>
-                <p class="muted" style="margin:0;">This action cannot be undone.</p>
+                <p class="muted" id="delHint" style="margin:0;">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-ghost" type="button" onclick="closeDelete()">Cancel</button>
-                <button class="btn btn-danger" type="button" onclick="confirmDelete()">Delete</button>
+                <button class="btn btn-danger" type="button" id="delConfirmBtn" onclick="confirmDelete()">Delete</button>
             </div>
         </div>
+    </div>
+
     <script src="../assets/app_ajax.js"></script>
     <script>
+        const logsSearch = document.getElementById('logsSearch');
         const logsClear = document.getElementById('logsClear');
+        const logsToolbarShell = document.getElementById('logsToolbarShell');
+        const logsToggleTools = document.getElementById('logsToggleTools');
+        const logsToggleToolsLabel = document.getElementById('logsToggleToolsLabel');
+        const logsToggleToolsHint = document.getElementById('logsToggleToolsHint');
+        const logsToolsPanel = document.getElementById('logsToolsPanel');
+        const logsListCard = document.getElementById('logsListCard');
+        const LOGS_TOOLS_STORAGE_KEY = 'evsu_logs_tools_hidden';
+
+        function setLogsToolsCollapsed(collapsed) {
+            if (!logsToolbarShell) return;
+            logsToolbarShell.classList.toggle('logs-tools-collapsed', collapsed);
+            if (logsListCard) {
+                logsListCard.classList.toggle('logs-list-expanded', collapsed);
+            }
+            if (logsToggleTools) {
+                logsToggleTools.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            }
+            if (logsToggleToolsLabel) {
+                logsToggleToolsLabel.textContent = collapsed ? 'Show filters' : 'Hide filters';
+            }
+            if (logsToggleToolsHint) {
+                logsToggleToolsHint.textContent = collapsed ? 'Filters hidden — list expanded' : 'Show list only';
+            }
+            try {
+                localStorage.setItem(LOGS_TOOLS_STORAGE_KEY, collapsed ? '1' : '0');
+            } catch (e) {}
+        }
+
+        if (logsToggleTools && logsToolbarShell) {
+            var logsToolsInitiallyHidden = false;
+            try {
+                logsToolsInitiallyHidden = localStorage.getItem(LOGS_TOOLS_STORAGE_KEY) === '1';
+            } catch (e) {}
+            setLogsToolsCollapsed(logsToolsInitiallyHidden);
+            logsToggleTools.addEventListener('click', function () {
+                setLogsToolsCollapsed(!logsToolbarShell.classList.contains('logs-tools-collapsed'));
+            });
+        }
 
         function showAjaxFlash(text, isErr) {
+            if (window.showActionMessage) {
+                window.showActionMessage(text, isErr);
+                if (isErr && editModal && editModal.classList.contains('is-open') && window.adminShakeModal) {
+                    window.adminShakeModal(editModal);
+                }
+                return;
+            }
+            var msg = String(text || '').trim();
+            if (!msg) return;
+            if (window.uiToast) {
+                window.uiToast(isErr ? 'error' : 'success', msg);
+            }
             var el = document.getElementById('ajaxFlash');
-            if (!el || !text) return;
-            el.textContent = text;
-            el.className = 'msg ' + (isErr ? 'err' : 'ok');
-            el.style.display = '';
-            el.setAttribute('role', isErr ? 'alert' : 'status');
+            if (el) {
+                el.textContent = msg;
+                el.className = 'msg ' + (isErr ? 'err' : 'ok');
+                el.style.display = '';
+                el.setAttribute('role', isErr ? 'alert' : 'status');
+            }
+            if (isErr && editModal && editModal.classList.contains('is-open') && window.adminShakeModal) {
+                window.adminShakeModal(editModal);
+            }
         }
 
         var editLogForm = document.getElementById('editLogForm');
@@ -477,8 +707,12 @@ header('Content-Type: text/html; charset=utf-8');
             editLogForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 ajaxPostForm(editLogForm).then(function (data) {
-                    if (data.ok) window.location.reload();
-                    else showAjaxFlash(data.message || data.error || 'Error', true);
+                    if (data && data.ok) {
+                        if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                        else window.location.reload();
+                    } else {
+                        showAjaxFlash((data && (data.message || data.error)) || 'Error', true);
+                    }
                 }).catch(function () { showAjaxFlash('Network error.', true); });
             });
         }
@@ -488,7 +722,7 @@ header('Content-Type: text/html; charset=utf-8');
             const from = document.getElementById('from');
             const to = document.getElementById('to');
             const hasDates = Boolean((from && String(from.value || '').trim()) || (to && String(to.value || '').trim()));
-            const shouldShow = hasText || hasDates || <?= json_encode($mode_f !== '') ?>;
+            const shouldShow = hasText || hasDates || <?= json_encode($mode_f !== '' || $role_f !== '' || $dept_f !== '' || $cat_f !== '') ?>;
             logsClear.classList.toggle('is-hidden', !shouldShow);
             logsClear.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
         }
@@ -501,9 +735,90 @@ header('Content-Type: text/html; charset=utf-8');
         if (fromEl) fromEl.addEventListener('change', syncLogsClearVisibility);
         if (toEl) toEl.addEventListener('change', syncLogsClearVisibility);
 
+        const logsDept = document.getElementById('logsDept');
+        const logsDeptForm = document.getElementById('logsDeptForm');
+        if (logsDept && logsDeptForm) {
+            logsDept.addEventListener('change', function () {
+                if (logsDept.disabled) return;
+                logsDeptForm.submit();
+            });
+        }
+
         const editModal = document.getElementById('editModal');
         const deleteModal = document.getElementById('deleteModal');
+        const delTitle = document.getElementById('delTitle');
+        const delHint = document.getElementById('delHint');
+        const logsSelectAll = document.getElementById('logsSelectAll');
+        const logsDeleteSelected = document.getElementById('logsDeleteSelected');
+        const logsBulkCount = document.getElementById('logsBulkCount');
         let pendingDeleteId = null;
+        let pendingDeleteIds = [];
+
+        function getRowChecks() {
+            return Array.prototype.slice.call(document.querySelectorAll('.logs-row-check'));
+        }
+
+        function getSelectedIds() {
+            return getRowChecks()
+                .filter(function (cb) { return cb.checked; })
+                .map(function (cb) { return parseInt(cb.value, 10); })
+                .filter(function (id) { return id > 0; });
+        }
+
+        function syncBulkUi() {
+            var checks = getRowChecks();
+            var selected = getSelectedIds();
+            var n = selected.length;
+            var total = checks.length;
+
+            if (logsBulkCount) {
+                logsBulkCount.textContent = n + ' selected' + (total ? (' of ' + total) : '');
+            }
+            if (logsDeleteSelected) {
+                logsDeleteSelected.disabled = n === 0;
+                logsDeleteSelected.textContent = n > 0 ? ('Delete selected (' + n + ')') : 'Delete selected';
+            }
+            if (logsSelectAll) {
+                logsSelectAll.indeterminate = n > 0 && n < total;
+                logsSelectAll.checked = total > 0 && n === total;
+            }
+
+            checks.forEach(function (cb) {
+                var row = cb.closest('tr');
+                if (!row) return;
+                row.classList.toggle('log-row-selected', cb.checked);
+            });
+        }
+
+        if (logsSelectAll) {
+            logsSelectAll.addEventListener('change', function () {
+                var on = logsSelectAll.checked;
+                getRowChecks().forEach(function (cb) { cb.checked = on; });
+                syncBulkUi();
+            });
+        }
+
+        getRowChecks().forEach(function (cb) {
+            cb.addEventListener('change', syncBulkUi);
+        });
+
+        if (logsDeleteSelected) {
+            logsDeleteSelected.addEventListener('click', function () {
+                var ids = getSelectedIds();
+                if (!ids.length) return;
+                pendingDeleteId = null;
+                pendingDeleteIds = ids.slice();
+                if (delTitle) delTitle.textContent = ids.length === 1 ? 'Delete log?' : ('Delete ' + ids.length + ' logs?');
+                document.getElementById('delSummary').textContent =
+                    ids.length === 1
+                        ? ('Log #' + ids[0])
+                        : ('You are about to delete ' + ids.length + ' logs from this page.');
+                if (delHint) delHint.textContent = 'This action cannot be undone.';
+                deleteModal.classList.add('is-open');
+            });
+        }
+
+        syncBulkUi();
 
         function openEdit(btn){
             document.getElementById('edit_id').value = btn.dataset.id || '';
@@ -520,31 +835,51 @@ header('Content-Type: text/html; charset=utf-8');
         function closeEdit(){ editModal.classList.remove('is-open'); }
 
         function openDelete(btn){
+            pendingDeleteIds = [];
             pendingDeleteId = btn.getAttribute('data-id') || '';
             const id = btn.dataset.id || '';
             const scanned = btn.dataset.scanned || '';
             const rfid = btn.dataset.rfid || '';
+            if (delTitle) delTitle.textContent = 'Delete log?';
             document.getElementById('delSummary').textContent = 'Log #' + id + ' — ' + scanned + (rfid ? (' — RFID ' + rfid) : '');
+            if (delHint) delHint.textContent = 'This action cannot be undone.';
             deleteModal.classList.add('is-open');
         }
-        function closeDelete(){ deleteModal.classList.remove('is-open'); pendingDeleteId = null; }
+        function closeDelete(){
+            deleteModal.classList.remove('is-open');
+            pendingDeleteId = null;
+            pendingDeleteIds = [];
+        }
         function confirmDelete(){
-            if (!pendingDeleteId) return;
-            var f = document.createElement('form');
-            f.method = 'post';
-            f.innerHTML = '<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="' + String(pendingDeleteId) + '">';
-            document.body.appendChild(f);
-            var fd = new FormData(f);
+            var fd = new FormData();
             fd.set('__ajax', '1');
-            document.body.removeChild(f);
-            fetch(window.location.pathname, {
-                method: 'POST',
-                body: fd,
-                credentials: 'same-origin',
-                headers: { 'X-Requested-With': 'fetch' },
-            }).then(function (res) { return res.json(); }).then(function (data) {
-                if (data && data.ok) window.location.reload();
-                else showAjaxFlash((data && (data.message || data.error)) || 'Error', true);
+            if (pendingDeleteIds.length) {
+                fd.set('action', 'delete_bulk');
+                pendingDeleteIds.forEach(function (id) {
+                    fd.append('ids[]', String(id));
+                });
+            } else if (pendingDeleteId) {
+                fd.set('action', 'delete');
+                fd.set('id', String(pendingDeleteId));
+            } else {
+                return;
+            }
+            var postDelete = window.ajaxPostFd
+                ? window.ajaxPostFd(window.location.pathname, fd)
+                : fetch(window.location.pathname, {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'fetch' },
+                }).then(function (res) { return res.json(); });
+
+            postDelete.then(function (data) {
+                if (data && data.ok) {
+                    if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                    else window.location.reload();
+                } else {
+                    showAjaxFlash((data && (data.message || data.error)) || 'Error', true);
+                }
             }).catch(function () { showAjaxFlash('Network error.', true); });
             closeDelete();
         }

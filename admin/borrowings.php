@@ -624,7 +624,7 @@ header('Content-Type: text/html; charset=utf-8');
                 <div class="grid directory-list-grid">
                     <section class="card inventory-card directory-list-card" aria-label="Borrowings list">
                         <div class="card-body inventory-toolbar directory-list-toolbar">
-                            <h2 class="card-title inventory-title">Borrowings</h2>
+                           
 
                             <form method="get" action="" class="inventory-actionbar inventory-actionbar--borrow" role="search" aria-label="Borrowings search and filters">
                                 <button class="btn btn-primary inventory-add" type="button" data-open-issue>Issue Book</button>
@@ -1610,6 +1610,10 @@ header('Content-Type: text/html; charset=utf-8');
             }
 
             function showAjaxFlash(text, isErr) {
+                if (window.showActionMessage) {
+                    window.showActionMessage(text, isErr);
+                    return;
+                }
                 var el = document.getElementById('ajaxFlash');
                 if (!el || !text) return;
                 el.textContent = text;
@@ -1804,8 +1808,12 @@ header('Content-Type: text/html; charset=utf-8');
                 if (act === 'mark_lost' && !window.confirm('Mark this loan as LOST?')) return;
                 if (act === 'resolve_lost_paid' && !window.confirm('Close as paid / settled without returning a physical copy?')) return;
                 postBorrowAction(act, id, extra).then(function (data) {
-                    if (data && data.ok) window.location.reload();
-                    else showAjaxFlash((data && (data.message || data.error)) || 'Error', true);
+                    if (data && data.ok) {
+                        if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                        else window.location.reload();
+                    } else {
+                        showAjaxFlash((data && (data.message || data.error)) || 'Error', true);
+                    }
                 }).catch(function () { showAjaxFlash('Network error.', true); });
             }
 
@@ -1864,8 +1872,12 @@ header('Content-Type: text/html; charset=utf-8');
                     }
                     issueSyncSubmit();
                     ajaxPostForm(issueForm).then(function (data) {
-                        if (data.ok) window.location.reload();
-                        else showAjaxFlash(data.message || data.error || 'Error', true);
+                        if (data.ok) {
+                            if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                            else window.location.reload();
+                        } else {
+                            showAjaxFlash(data.message || data.error || 'Error', true);
+                        }
                     }).catch(function () { showAjaxFlash('Network error.', true); });
                 });
             }

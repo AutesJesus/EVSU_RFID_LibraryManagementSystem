@@ -135,3 +135,6 @@ $scan_href = $portal_staff ? '../scan.php' : '../scan.php';
                 </a>
             </nav>
         </aside>
+<?php if (function_exists('portal_asset')): ?>
+        <script src="<?= h(portal_asset('assets/admin-motion.js')) ?>" defer></script>
+<?php endif; ?>

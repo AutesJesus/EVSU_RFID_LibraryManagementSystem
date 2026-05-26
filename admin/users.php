@@ -523,7 +523,6 @@ header('Content-Type: text/html; charset=utf-8');
                 <div class="grid directory-list-grid">
                     <section class="card users-directory inventory-card directory-list-card" aria-label="Users list">
                         <div class="card-body inventory-toolbar directory-list-toolbar">
-                            <h2 class="card-title inventory-title">Users</h2>
 
                             <form method="get" action="" class="inventory-actionbar" role="search" aria-label="Users search">
                                 <button class="btn btn-primary" type="button" data-open-user-modal="add">Add user</button>
@@ -675,120 +674,180 @@ header('Content-Type: text/html; charset=utf-8');
     <!-- User Add/Edit modal -->
     <div class="modal" id="userModal" aria-hidden="true">
         <div class="modal-panel modal-panel-user" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
-            <div class="modal-header">
-                <h2 class="modal-title" id="userModalTitle">User</h2>
-                <button class="icon-btn" type="button" data-close-modal aria-label="Close">
+            <div class="user-modal-header">
+                <div class="user-modal-header__brand">
+                    <div class="user-modal-header__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                    </div>
+                    <div class="user-modal-header__copy">
+                        <h2 class="user-modal-header__title" id="userModalTitle">Add new user</h2>
+                        <div class="user-modal-header__sub">Fill in the details below to register a new library user.</div>
+                    </div>
+                </div>
+                <button class="icon-btn user-modal-header__close" type="button" data-close-modal aria-label="Close">
                     <svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
                 </button>
             </div>
+
             <div class="modal-body modal-body-user">
-                <form method="post" action="" enctype="multipart/form-data" id="userForm">
+                <form method="post" action="" enctype="multipart/form-data" id="userForm" class="user-form">
                     <input type="hidden" name="action" value="add" id="userFormAction">
                     <input type="hidden" name="id" value="" id="userId">
 
-                    <div class="user-modal-hero">
-                        <div class="user-modal-hero__visual">
-                            <img
-                                src="<?= h(ui_avatar_url('User')) ?>"
-                                alt=""
-                                class="user-modal-hero__avatar"
-                                id="userAvatarPreview"
-                                width="96"
-                                height="96"
-                                referrerpolicy="no-referrer"
-                                onerror="this.onerror=null;this.src=<?= json_encode(user_avatar_img_fallback_data_uri(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>"
-                            >
-                        </div>
-                        <div class="user-modal-hero__identity">
-                            <div class="user-modal-hero__name" id="userModalHeroName">New user</div>
-                            <div class="user-modal-hero__sub muted" id="userModalHeroSub">Add details below</div>
-                        </div>
-                        <label for="userAvatar" class="user-modal-hero__label">Profile picture</label>
-                        <input id="userAvatar" name="avatar" type="file" accept="image/png,image/jpeg,image/webp" class="user-modal-hero__file">
-                        <p class="hint user-modal-hero__hint">Optional — JPG, PNG, or WEBP, max 2MB. Leave empty to keep a generated avatar.</p>
-                    </div>
+                    <div class="user-modal-grid user-modal-grid--v2">
+                        <section class="user-step" aria-label="Profile picture">
+                            <div class="user-step__head">
+                                <div class="user-step__num">1</div>
+                                <div class="user-step__title">Profile picture</div>
+                            </div>
 
-                    <div class="user-modal-actions" id="userModalManageBar" hidden>
-                        <button class="btn btn-sm btn-danger" type="button" id="userModalBtnDelete">Delete user</button>
-                        <button class="btn btn-sm" type="button" id="userModalBtnToggle">Toggle active / inactive</button>
-                    </div>
+                            <label class="user-photo-drop" id="userPhotoDrop" for="userAvatar">
+                                <input id="userAvatar" name="avatar" type="file" accept="image/png,image/jpeg,image/webp" class="user-photo-drop__input">
 
-                    <label for="userFullName">Full name</label>
-                    <input id="userFullName" name="full_name" required value="">
+                                <div class="user-photo-drop__inner" aria-hidden="true">
+                                    <img
+                                        src="<?= h(ui_avatar_url('User')) ?>"
+                                        alt=""
+                                        class="user-photo-drop__avatar"
+                                        id="userAvatarPreview"
+                                        width="96"
+                                        height="96"
+                                        referrerpolicy="no-referrer"
+                                        onerror="this.onerror=null;this.src=<?= json_encode(user_avatar_img_fallback_data_uri(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>"
+                                    >
 
-                    <label for="userEmail">Email</label>
-                    <input id="userEmail" name="email" type="email" value="">
+                             
+                                </div>
 
-                    <div class="row">
-                        <div>
-                            <label for="userRole">Role</label>
-                            <select id="userRole" name="role" required>
-                                <option value="student">Student</option>
-                                <option value="faculty">Faculty</option>
-                                <option value="librarian">Librarian</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="userStatus">Status</label>
-                            <select id="userStatus" name="status" required>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
+                                <div class="user-photo-drop__caption">
+                                    <div class="user-photo-drop__label">Upload user photo</div>
+                                    <div class="user-photo-drop__hint">Drag and drop an image here</div>
+                                    <br>
+                                </div>
+                            </label>
 
-                    <label for="userDept">Department / program</label>
-                    <input
-                        id="userDept"
-                        name="department"
-                        required
-                        value=""
-                        list="evsuDepartmentPrograms"
-                        autocomplete="off"
-                        placeholder="Choose from list or type any department…"
-                    >
-                    <datalist id="evsuDepartmentPrograms">
-                        <?php foreach ($evsu_department_programs as $prog): ?>
-                            <option value="<?= h($prog) ?>"></option>
-                        <?php endforeach; ?>
-                    </datalist>
-                    <div class="hint">Suggestions include EVSU programs; you can enter any department or unit.</div>
+                            <div class="user-modal-actions" id="userModalManageBar" hidden>
+                                <button class="btn btn-sm btn-danger" type="button" id="userModalBtnDelete">Delete</button>
+                                <button class="btn btn-sm" type="button" id="userModalBtnToggle">Toggle</button>
+                            </div>
+                        </section>
 
-                    <label for="userUsername">Username (portal login)</label>
-                    <input id="userUsername" name="username" value="">
-                    <div class="hint">Used for student, faculty, and librarian sign-in.</div>
+                        <section class="user-step" aria-label="User details">
+                            <div class="user-step__head">
+                                <div class="user-step__num">2</div>
+                                <div class="user-step__title">User details</div>
+                            </div>
 
-                    <label for="userPassword">Password</label>
-                    <input id="userPassword" name="password" type="password" value="">
-                    <div class="hint" id="userPasswordHint">Required when adding a new user.</div>
+                            <div class="user-form-grid">
+                                <div class="user-field">
+                                    <label for="userFullName">Full name <span class="req" aria-hidden="true">*</span></label>
+                                    <input id="userFullName" name="full_name" required minlength="2" autocomplete="name" value="" placeholder="Enter full name">
+                                </div>
 
-                    <div class="user-rfid-section" id="userRfidBlock" aria-labelledby="userRfidSectionTitle">
-                        <h3 class="user-rfid-section-title" id="userRfidSectionTitle">RFID tag</h3>
-                        <p class="hint user-rfid-lead" id="userRfidLead">Use the button below to open the scanner window. Your reader will type into that field so the tag is captured reliably.</p>
-                        <label for="userRfid" class="user-rfid-value-label">Captured RFID</label>
-                        <input
-                            id="userRfid"
-                            name="rfid_tag"
-                            type="text"
-                            readonly
-                            tabindex="-1"
-                            autocomplete="off"
-                            class="user-rfid-display"
-                            placeholder="(not scanned yet)"
-                            value=""
-                            aria-describedby="userRfidLead"
-                        >
-                        <button class="btn btn-primary user-rfid-scan-cta" type="button" id="userRfidScanBtn">
-                            Click to scan new user RFID
-                        </button>
+                                <div class="user-field">
+                                    <label for="userEmail">Email</label>
+                                    <input id="userEmail" name="email" type="email" autocomplete="email" inputmode="email" value="" placeholder="Enter email address">
+                                </div>
+
+                                <div class="user-field">
+                                    <label for="userDept">Department <span class="req" aria-hidden="true">*</span></label>
+                                    <input
+                                        id="userDept"
+                                        name="department"
+                                        required
+                                        value=""
+                                        list="evsuDepartmentPrograms"
+                                        autocomplete="off"
+                                        placeholder="Select department…"
+                                    >
+                                    <datalist id="evsuDepartmentPrograms">
+                                        <?php foreach ($evsu_department_programs as $prog): ?>
+                                            <option value="<?= h($prog) ?>"></option>
+                                        <?php endforeach; ?>
+                                    </datalist>
+                                </div>
+
+                                <div class="user-field">
+                                    <label for="userRole">Role <span class="req" aria-hidden="true">*</span></label>
+                                    <select id="userRole" name="role" required>
+                                        <option value="student">Student</option>
+                                        <option value="faculty">Faculty</option>
+                                        <option value="librarian">Librarian</option>
+                                    </select>
+                                </div>
+
+                                <div class="user-field">
+                                    <label for="userStatus">Status <span class="req" aria-hidden="true">*</span></label>
+                                    <select id="userStatus" name="status" required>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+
+                                <div class="user-field">
+                                    <label for="userUsername">Username <span class="req" aria-hidden="true">*</span></label>
+                                    <input id="userUsername" name="username" autocomplete="username" minlength="3" value="" placeholder="Enter username">
+                                </div>
+
+                                <div class="user-field user-field--span2">
+                                    <label for="userPassword">Password <span class="req" aria-hidden="true">*</span></label>
+                                    <div class="user-password-wrap">
+                                        <input id="userPassword" name="password" type="password" value="" minlength="6" autocomplete="new-password" placeholder="Enter password">
+                                        <button class="user-password-toggle" type="button" id="userPasswordToggle" aria-label="Show password">
+                                            <svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                    </div>
+                                    <div class="hint" id="userPasswordHint">Required when adding a new user. Minimum 6 characters.</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="user-step user-step--span2" aria-label="RFID registration">
+                            <div class="user-step__head">
+                                <div class="user-step__num">3</div>
+                                <div class="user-step__title">RFID registration</div>
+                            </div>
+
+                            <div class="user-rfid-card" id="userRfidBlock" aria-labelledby="userRfidSectionTitle">
+                                <div class="user-rfid-card__head">
+                                    <div class="user-rfid-card__ico" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path d="M12 3v2"/><path d="M12 19v2"/><path d="M4 12H2"/><path d="M22 12h-2"/><circle cx="12" cy="12" r="4"/></svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="user-rfid-card__title" id="userRfidSectionTitle">RFID scanner</h4>
+                                        <div class="user-rfid-card__sub muted" id="userRfidLead">Scan the RFID card/tag to register the user.</div>
+                                    </div>
+                                </div>
+
+                                <input
+                                    id="userRfid"
+                                    name="rfid_tag"
+                                    type="text"
+                                    readonly
+                                    tabindex="-1"
+                                    autocomplete="off"
+                                    class="user-rfid-display user-rfid-display--big"
+                                    placeholder="Waiting for RFID scan…"
+                                    value=""
+                                    aria-describedby="userRfidLead"
+                                >
+                                <button class="btn btn-primary user-rfid-scan-cta" type="button" id="userRfidScanBtn">
+                                    Click to scan new user RFID
+                                </button>
+                            </div>
+                        </section>
                     </div>
                 </form>
 
                 <div class="msg err" id="userModalDanger" style="display:none; margin-top:12px;"></div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" type="button" data-close-modal>Cancel</button>
-                <button class="btn btn-primary" type="submit" form="userForm" id="userSubmitBtn">Save</button>
+
+            <div class="user-modal-footer">
+                <div class="user-modal-footer__note muted">You can edit user details anytime after creation.</div>
+                <div class="user-modal-footer__actions">
+                    <button class="btn btn-ghost" type="button" data-close-modal>Cancel</button>
+                    <button class="btn btn-primary" type="submit" form="userForm" id="userSubmitBtn">Add user</button>
+                </div>
             </div>
         </div>
     </div>
@@ -936,6 +995,9 @@ header('Content-Type: text/html; charset=utf-8');
             const userModalHeroName = document.getElementById('userModalHeroName');
             const userModalHeroSub = document.getElementById('userModalHeroSub');
             const userPasswordHint = document.getElementById('userPasswordHint');
+            const userPasswordToggle = document.getElementById('userPasswordToggle');
+            const userAvatarInput = document.getElementById('userAvatar');
+            const userPhotoDrop = document.getElementById('userPhotoDrop');
 
             const fields = {
                 full_name: document.getElementById('userFullName'),
@@ -957,12 +1019,12 @@ header('Content-Type: text/html; charset=utf-8');
                 fields.role.value = 'student';
                 fields.status.value = 'active';
                 fields.password.value = '';
-                userModalTitle.textContent = 'Add user';
-                userSubmitBtn.textContent = 'Add user';
+                if (userModalTitle) userModalTitle.textContent = 'Add new user';
+                if (userSubmitBtn) userSubmitBtn.textContent = 'Add user';
                 userPasswordHint.textContent = 'Required when adding a new user.';
                 userAvatarPreview.src = <?= json_encode(ui_avatar_url('User')) ?>;
                 if (userModalHeroName) userModalHeroName.textContent = 'New user';
-                if (userModalHeroSub) userModalHeroSub.textContent = 'Add details below';
+                if (userModalHeroSub) userModalHeroSub.textContent = 'You can edit user details anytime after creation.';
                 if (userRfidScanBtn) userRfidScanBtn.textContent = 'Click to scan new user RFID';
                 if (userModalDanger) {
                     userModalDanger.style.display = 'none';
@@ -984,8 +1046,8 @@ header('Content-Type: text/html; charset=utf-8');
                 fields.department.value = u.department || '';
                 fields.username.value = u.username || '';
                 fields.password.value = '';
-                userModalTitle.textContent = 'Edit user';
-                userSubmitBtn.textContent = 'Save changes';
+                if (userModalTitle) userModalTitle.textContent = 'Edit user';
+                if (userSubmitBtn) userSubmitBtn.textContent = 'Save changes';
                 userPasswordHint.textContent = 'Leave blank to keep the current password.';
                 userAvatarPreview.src = u.avatar_src || <?= json_encode(ui_avatar_url('User')) ?>;
                 if (userModalHeroName) userModalHeroName.textContent = u.full_name || 'User';
@@ -1000,6 +1062,36 @@ header('Content-Type: text/html; charset=utf-8');
                     userModalDanger.style.display = 'none';
                     userModalDanger.textContent = '';
                 }
+            }
+
+            function setPasswordToggleState(isVisible) {
+                if (!userPasswordToggle) return;
+                userPasswordToggle.setAttribute('aria-label', isVisible ? 'Hide password' : 'Show password');
+                userPasswordToggle.classList.toggle('is-on', !!isVisible);
+            }
+
+            if (userPasswordToggle && fields.password) {
+                userPasswordToggle.addEventListener('click', function () {
+                    const isVisible = fields.password.type === 'text';
+                    fields.password.type = isVisible ? 'password' : 'text';
+                    setPasswordToggleState(!isVisible);
+                    fields.password.focus();
+                });
+                setPasswordToggleState(false);
+            }
+
+            if (userAvatarInput && userAvatarPreview) {
+                userAvatarInput.addEventListener('change', function () {
+                    const f = userAvatarInput.files && userAvatarInput.files[0];
+                    if (!f) {
+                        if (userPhotoDrop) userPhotoDrop.classList.remove('has-file');
+                        return;
+                    }
+                    if (!/^image\//.test(String(f.type || ''))) return;
+                    const url = URL.createObjectURL(f);
+                    userAvatarPreview.src = url;
+                    if (userPhotoDrop) userPhotoDrop.classList.add('has-file');
+                });
             }
 
             function getUserById(id) {
@@ -1092,6 +1184,10 @@ header('Content-Type: text/html; charset=utf-8');
             }
 
             function showAjaxFlash(text, isErr) {
+                if (window.showActionMessage) {
+                    window.showActionMessage(text, isErr);
+                    return;
+                }
                 var el = document.getElementById('ajaxFlash');
                 if (!el || !text) return;
                 el.textContent = text;
@@ -1107,6 +1203,7 @@ header('Content-Type: text/html; charset=utf-8');
                     ajaxPostForm(form).then(function (data) {
                         if (data.ok) {
                             if (onOk) onOk(data);
+                            else if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
                             else window.location.reload();
                         } else {
                             showAjaxFlash(data.message || data.error || 'Error', true);
@@ -1131,12 +1228,26 @@ header('Content-Type: text/html; charset=utf-8');
                     }
                     ajaxPostForm(userForm).then(function (data) {
                         if (data.ok) {
-                            window.location.reload();
+                            if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                            else window.location.reload();
                         } else {
-                            showAjaxFlash(data.message || data.error || 'Error', true);
+                            const msg = data.message || data.error || 'Error';
+                            if (userModalDanger) {
+                                userModalDanger.style.display = 'block';
+                                userModalDanger.textContent = msg;
+                                try { userModalDanger.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+                            } else {
+                                showAjaxFlash(msg, true);
+                            }
                         }
                     }).catch(function () {
-                        showAjaxFlash('Network error.', true);
+                        const msg = 'Network error.';
+                        if (userModalDanger) {
+                            userModalDanger.style.display = 'block';
+                            userModalDanger.textContent = msg;
+                        } else {
+                            showAjaxFlash(msg, true);
+                        }
                     });
                 });
             }
@@ -1166,11 +1277,13 @@ header('Content-Type: text/html; charset=utf-8');
                 openModal(userModal);
             <?php endif; ?>
 
-            handleAjaxForm(document.getElementById('confirmForm'), function () {
-                window.location.reload();
+            handleAjaxForm(document.getElementById('confirmForm'), function (data) {
+                if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                else window.location.reload();
             });
         })();
     </script>
+    <script src="assets/admin-motion.js" defer></script>
 </body>
 </html>
 

@@ -826,6 +826,10 @@ header('Content-Type: text/html; charset=utf-8');
     <script>
         (function () {
             function showAjaxFlash(text, isErr) {
+                if (window.showActionMessage) {
+                    window.showActionMessage(text, isErr);
+                    return;
+                }
                 var el = document.getElementById('ajaxFlash');
                 if (!el || !text) return;
                 el.textContent = text;
@@ -838,8 +842,12 @@ header('Content-Type: text/html; charset=utf-8');
                 form.addEventListener('submit', function (e) {
                     e.preventDefault();
                     ajaxPostForm(form).then(function (data) {
-                        if (data.ok) window.location.reload();
-                        else showAjaxFlash(data.message || data.error || 'Error', true);
+                        if (data.ok) {
+                            if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                            else window.location.reload();
+                        } else {
+                            showAjaxFlash(data.message || data.error || 'Error', true);
+                        }
                     }).catch(function () { showAjaxFlash('Network error.', true); });
                 });
             }

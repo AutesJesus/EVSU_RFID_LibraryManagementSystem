@@ -462,8 +462,6 @@ header('Content-Type: text/html; charset=utf-8');
                 <div class="grid directory-list-grid">
                     <section class="card users-directory inventory-card books-inventory directory-list-card" aria-label="Books list">
                         <div class="card-body inventory-toolbar directory-list-toolbar">
-                            <h2 class="card-title inventory-title">Books</h2>
-
                             <div class="inventory-toolbar-top-row">
                             <form method="get" action="" class="inventory-actionbar inventory-actionbar--grow" role="search" aria-label="Inventory search">
                                 <button class="btn btn-primary inventory-add" type="button" data-open-book-modal="add">Add Book</button>
@@ -1316,6 +1314,10 @@ header('Content-Type: text/html; charset=utf-8');
             <?php endif; ?>
 
             function showAjaxFlash(text, isErr) {
+                if (window.showActionMessage) {
+                    window.showActionMessage(text, isErr);
+                    return;
+                }
                 var el = document.getElementById('ajaxFlash');
                 if (!el || !text) return;
                 el.textContent = text;
@@ -1331,6 +1333,7 @@ header('Content-Type: text/html; charset=utf-8');
                     ajaxPostForm(form).then(function (data) {
                         if (data.ok) {
                             if (onOk) onOk(data);
+                            else if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
                             else window.location.reload();
                         } else {
                             showAjaxFlash(data.message || data.error || 'Error', true);
@@ -1347,7 +1350,8 @@ header('Content-Type: text/html; charset=utf-8');
                     hideBookModalDanger();
                     ajaxPostForm(bookForm).then(function (data) {
                         if (data.ok) {
-                            window.location.reload();
+                            if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                            else window.location.reload();
                         } else {
                             if (bookModalDanger) {
                                 bookModalDanger.style.display = 'block';
@@ -1362,8 +1366,14 @@ header('Content-Type: text/html; charset=utf-8');
                 });
             }
 
-            handleAjaxForm(document.getElementById('adjustForm'), function () { window.location.reload(); });
-            handleAjaxForm(document.getElementById('bookConfirmForm'), function () { window.location.reload(); });
+            handleAjaxForm(document.getElementById('adjustForm'), function (data) {
+                if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                else window.location.reload();
+            });
+            handleAjaxForm(document.getElementById('bookConfirmForm'), function (data) {
+                if (window.ajaxReloadOnSuccess) window.ajaxReloadOnSuccess(data);
+                else window.location.reload();
+            });
         })();
     </script>
 </body>
