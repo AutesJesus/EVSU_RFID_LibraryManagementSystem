@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/app_session.php';
 app_session_start();
 
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/asset_version.php';
 require_once __DIR__ . '/../includes/ajax_response.php';
 
 if (empty($_SESSION['admin_id'])) {
@@ -399,7 +400,7 @@ header('Content-Type: text/html; charset=utf-8');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Manage Users — Admin</title>
-    <link rel="stylesheet" href="assets/admin.css">
+    <link rel="stylesheet" href="<?= h(asset_with_version('assets/admin.css')) ?>">
 </head>
 <body>
     <div class="admin-shell">
@@ -1283,7 +1284,7 @@ header('Content-Type: text/html; charset=utf-8');
             });
         })();
     </script>
-    <script src="assets/admin-motion.js" defer></script>
+    <script src="<?= h(asset_with_version('assets/admin-motion.js')) ?>" defer></script>
 </body>
 </html>
 

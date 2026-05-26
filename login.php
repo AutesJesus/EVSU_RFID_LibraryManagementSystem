@@ -5,6 +5,7 @@ require_once __DIR__ . '/includes/app_session.php';
 app_session_start();
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/asset_version.php';
 require_once __DIR__ . '/includes/ajax_response.php';
 require_once __DIR__ . '/includes/auth_login.php';
 
@@ -147,9 +148,9 @@ header('Content-Type: text/html; charset=utf-8');
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sign in — EVSU RFID Library</title>
     <?php if ($step_rfid): ?>
-    <link rel="stylesheet" href="admin/assets/admin.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asset_with_version('admin/assets/admin.css'), ENT_QUOTES, 'UTF-8') ?>">
     <?php else: ?>
-    <link rel="stylesheet" href="assets/login.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asset_with_version('assets/login.css'), ENT_QUOTES, 'UTF-8') ?>">
     <?php endif; ?>
 </head>
 <body class="login-page<?= $step_rfid ? ' auth-rfid-step' : '' ?><?= $step_otp ? ' auth-otp-step' : '' ?>">

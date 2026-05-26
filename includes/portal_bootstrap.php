@@ -5,6 +5,7 @@ require_once __DIR__ . '/app_session.php';
 app_session_start();
 
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/asset_version.php';
 
 /**
  * @return bool
@@ -17,11 +18,9 @@ function portal_is_staff(): bool
 function portal_asset(string $relativePath): string
 {
     $relativePath = ltrim($relativePath, '/');
-    if (portal_is_staff()) {
-        return '../admin/' . $relativePath;
-    }
+    $href = portal_is_staff() ? '../admin/' . $relativePath : $relativePath;
 
-    return $relativePath;
+    return asset_with_version($href);
 }
 
 function portal_current_page(): string

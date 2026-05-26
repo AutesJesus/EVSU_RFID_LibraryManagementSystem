@@ -204,7 +204,7 @@ header('Content-Type: text/html; charset=utf-8');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>My profile — <?= h($role_label) ?></title>
-    <link rel="stylesheet" href="../admin/assets/admin.css">
+    <link rel="stylesheet" href="<?= h(portal_asset('assets/admin.css')) ?>">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <style>
         .student-edit-profile-btn {

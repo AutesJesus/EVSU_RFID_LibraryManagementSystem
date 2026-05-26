@@ -15,7 +15,9 @@ RSYNC_SSH="ssh -i ${SSH_IDENTITY_FILE} -p ${SSH_PORT} -o StrictHostKeyChecking=y
 
 echo "Deploying to ${REMOTE}"
 
-rsync -avz \
+# --delete removes old files on the server that were removed/renamed in the repo.
+# --checksum ensures changed CSS/JS are uploaded even if timestamps differ.
+rsync -avz --delete --checksum \
   -e "${RSYNC_SSH}" \
   --exclude '.git/' \
   --exclude '.github/' \

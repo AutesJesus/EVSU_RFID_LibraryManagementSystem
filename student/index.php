@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/student_auth.php';
 student_require_login();
 
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/asset_version.php';
 require_once __DIR__ . '/../includes/ajax_response.php';
 require_once __DIR__ . '/../includes/patron_activity.php';
 
@@ -200,7 +201,7 @@ header('Content-Type: text/html; charset=utf-8');
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>My library — Student</title>
-    <link rel="stylesheet" href="../admin/assets/admin.css">
+    <link rel="stylesheet" href="<?= h(asset_with_version('../admin/assets/admin.css')) ?>">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <style>
         .student-edit-profile-btn {

@@ -174,10 +174,14 @@ jobs:
               config/mail.local.php \
               "${SSH_USER}@${SSH_HOST}:${SSH_REMOTE_PATH}/config/"
           fi
+          echo "Busting static file cache (touch CSS/JS)..."
+          ssh -i "${SSH_IDENTITY_FILE}" -p "${SSH_PORT}" -o StrictHostKeyChecking=yes \
+            "${SSH_USER}@${SSH_HOST}" \
+            "find ${SSH_REMOTE_PATH} -type f \\( -name '*.css' -o -name '*.js' \\) -exec touch {} + 2>/dev/null || true"
           echo "Verifying remote files..."
           ssh -i "${SSH_IDENTITY_FILE}" -p "${SSH_PORT}" -o StrictHostKeyChecking=yes \
             "${SSH_USER}@${SSH_HOST}" \
-            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/site-test.php && ! grep -q \"127.0.0.1\" ${SSH_REMOTE_PATH}/config/db.local.php && echo 'Remote OK: db.local.php, index.php, site-test.php present (not XAMPP defaults)'"
+            "test -f ${SSH_REMOTE_PATH}/config/db.local.php && test -f ${SSH_REMOTE_PATH}/index.php && test -f ${SSH_REMOTE_PATH}/site-test.php && ! grep -q \"127.0.0.1\" ${SSH_REMOTE_PATH}/config/db.local.php && wc -c < ${SSH_REMOTE_PATH}/admin/assets/admin.css | grep -qE '^[0-9]{5,}' && echo 'Remote OK: db.local.php, index.php, site-test.php, admin.css synced'"
 
       - name: Deploy via FTP (lftp — Hostinger)
         if: steps.secrets_check.outputs.method == 'ftp'
