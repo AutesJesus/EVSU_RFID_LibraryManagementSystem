@@ -316,3 +316,59 @@ body.auth-rfid-step.login-page {
 .login-foot a:hover {
     text-decoration: underline;
 }
+
+@media (max-width: 520px) {
+    .login-wrap {
+        padding: 1rem 0.75rem;
+        align-items: flex-start;
+        padding-top: max(1rem, env(safe-area-inset-top, 0px));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .login-card {
+        max-width: 100%;
+        padding: 1.5rem 1.2rem 1.35rem;
+        border-radius: 14px;
+    }
+
+    .login-brand h1 {
+        font-size: 1.2rem;
+    }
+
+    .login-brand p {
+        font-size: 0.85rem;
+    }
+
+    .login-brand-icon {
+        width: 2.85rem;
+        height: 2.85rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .login-input-wrap input {
+        font-size: 16px;
+    }
+
+    .login-otp-input {
+        font-size: 1.15rem;
+        letter-spacing: 0.28em;
+    }
+}
+
+@media (max-width: 380px) {
+    .login-card {
+        padding: 1.25rem 1rem;
+    }
+
+    .login-field {
+        margin-bottom: 0.95rem;
+    }
+}
+
+body.auth-rfid-step .auth-rfid-overlay {
+    padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+body.auth-otp-step .login-brand p strong {
+    word-break: break-word;
+}

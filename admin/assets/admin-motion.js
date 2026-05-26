@@ -104,12 +104,60 @@
         obs.observe(flash, { attributes: true, attributeFilter: ['style', 'class'], childList: true, characterData: true, subtree: true });
     }
 
+    function initPortalMobileNav() {
+        var menuBtn = document.getElementById('portalMenuBtn');
+        var sidebar = document.getElementById('portalSidebar');
+        var backdrop = document.getElementById('portalSidebarBackdrop');
+        if (!menuBtn || !sidebar) return;
+
+        function setOpen(open) {
+            document.body.classList.toggle('portal-nav-open', open);
+            menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+            if (backdrop) {
+                backdrop.hidden = !open;
+            }
+        }
+
+        function closeNav() {
+            setOpen(false);
+        }
+
+        menuBtn.addEventListener('click', function () {
+            setOpen(!document.body.classList.contains('portal-nav-open'));
+        });
+
+        if (backdrop) {
+            backdrop.addEventListener('click', closeNav);
+        }
+
+        sidebar.querySelectorAll('.admin-nav a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (window.matchMedia('(max-width: 979px)').matches) {
+                    closeNav();
+                }
+            });
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && document.body.classList.contains('portal-nav-open')) {
+                closeNav();
+            }
+        });
+
+        window.addEventListener('resize', function () {
+            if (window.matchMedia('(min-width: 980px)').matches) {
+                closeNav();
+            }
+        });
+    }
+
     ready(function () {
         initPageEnter();
+        initPortalMobileNav();
         staggerTableRows();
         initRipples();
         initFilterTabPress();
-        initModals();
         hookAjaxFlash();
     });
 })();

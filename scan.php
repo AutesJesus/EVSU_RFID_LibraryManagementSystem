@@ -507,6 +507,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: rgba(255, 255, 255, 0.07);
             border-color: rgba(124, 58, 237, 0.45);
         }
+
+        @media (max-width: 640px) {
+            body.scanner-kiosk {
+                padding: 10px;
+                padding-top: max(10px, env(safe-area-inset-top, 0px));
+                padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+            }
+            .topbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .btn-admin-top {
+                width: 100%;
+                justify-content: center;
+            }
+            .seg {
+                max-width: none;
+            }
+            .scanner-dock {
+                min-height: 130px;
+                padding: 1rem 0.75rem;
+            }
+            .scan-form input[type="text"] {
+                font-size: 16px;
+            }
+            .modal-backdrop {
+                align-items: flex-end;
+                padding: 0;
+            }
+            .dialog-panel {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 16px 16px 0 0;
+            }
+        }
     </style>
 </head>
 <body class="scanner-kiosk">

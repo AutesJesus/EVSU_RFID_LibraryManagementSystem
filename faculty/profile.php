@@ -206,62 +206,6 @@ header('Content-Type: text/html; charset=utf-8');
     <title>My profile — <?= h($role_label) ?></title>
     <link rel="stylesheet" href="<?= h(portal_asset('assets/admin.css')) ?>">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <style>
-        .student-edit-profile-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.65rem 1.15rem;
-            border: none;
-            border-radius: 999px;
-            font: inherit;
-            font-size: 0.9rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            color: #fff;
-            cursor: pointer;
-            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 48%, #38bdf8 100%);
-            box-shadow:
-                0 4px 18px rgba(124, 58, 237, 0.45),
-                0 0 0 1px rgba(255, 255, 255, 0.12) inset;
-            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
-        }
-        .student-edit-profile-btn svg {
-            width: 1.05rem;
-            height: 1.05rem;
-            flex-shrink: 0;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .student-edit-profile-btn:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.06);
-            box-shadow:
-                0 8px 26px rgba(124, 58, 237, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.16) inset;
-        }
-        .student-edit-profile-btn:active {
-            transform: translateY(0);
-        }
-        .student-edit-profile-btn:focus-visible {
-            outline: none;
-            box-shadow:
-                0 4px 18px rgba(124, 58, 237, 0.45),
-                0 0 0 3px rgba(124, 58, 237, 0.35);
-        }
-        .profile-topbar-aside {
-            align-items: center;
-            gap: 0.75rem;
-        }
-        @media (max-width: 640px) {
-            .student-edit-profile-btn span.btn-label-long { display: none; }
-            .student-edit-profile-btn { padding: 0.65rem 0.85rem; }
-        }
-    </style>
 </head>
 <body class="dashboard-page profile-page faculty-portal-page">
     <div class="admin-shell">

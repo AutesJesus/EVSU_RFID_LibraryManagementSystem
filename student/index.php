@@ -203,66 +203,14 @@ header('Content-Type: text/html; charset=utf-8');
     <title>My library — Student</title>
     <link rel="stylesheet" href="<?= h(asset_with_version('../admin/assets/admin.css')) ?>">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <style>
-        .student-edit-profile-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.65rem 1.15rem;
-            border: none;
-            border-radius: 999px;
-            font: inherit;
-            font-size: 0.9rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            color: #fff;
-            cursor: pointer;
-            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 48%, #38bdf8 100%);
-            box-shadow:
-                0 4px 18px rgba(124, 58, 237, 0.45),
-                0 0 0 1px rgba(255, 255, 255, 0.12) inset;
-            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
-        }
-        .student-edit-profile-btn svg {
-            width: 1.05rem;
-            height: 1.05rem;
-            flex-shrink: 0;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        .student-edit-profile-btn:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.06);
-            box-shadow:
-                0 8px 26px rgba(124, 58, 237, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.16) inset;
-        }
-        .student-edit-profile-btn:active {
-            transform: translateY(0);
-        }
-        .student-edit-profile-btn:focus-visible {
-            outline: none;
-            box-shadow:
-                0 4px 18px rgba(124, 58, 237, 0.45),
-                0 0 0 3px rgba(124, 58, 237, 0.35);
-        }
-        .profile-topbar-aside {
-            align-items: center;
-            gap: 0.75rem;
-        }
-        @media (max-width: 640px) {
-            .student-edit-profile-btn span.btn-label-long { display: none; }
-            .student-edit-profile-btn { padding: 0.65rem 0.85rem; }
-        }
-    </style>
 </head>
 <body class="dashboard-page profile-page student-portal-page">
     <div class="admin-shell">
-        <aside class="admin-sidebar" aria-label="Student navigation">
+        <?php
+        $portal_mobile_brand = 'EVSU Library';
+        require __DIR__ . '/../includes/portal_mobile_nav.php';
+        ?>
+        <aside class="admin-sidebar" id="portalSidebar" aria-label="Student navigation">
             <div class="admin-brand">
                 <img class="admin-mark" width="38" height="38" alt="" src="<?= h($profile_avatar_src) ?>">
                 <div>
@@ -591,6 +539,7 @@ header('Content-Type: text/html; charset=utf-8');
         </div>
     </div>
 
+    <script src="<?= h(asset_with_version('../admin/assets/admin-motion.js')) ?>" defer></script>
     <script src="../assets/app_ajax.js"></script>
     <script>
         (function () {

@@ -22,8 +22,10 @@ $show_profile = true;
 $profile_href = $portal_staff ? 'profile.php' : 'profile.php';
 $logout_href = $portal_staff ? 'logout.php' : 'logout.php';
 $scan_href = $portal_staff ? '../scan.php' : '../scan.php';
+$portal_mobile_brand = 'EVSU Library';
+require __DIR__ . '/portal_mobile_nav.php';
 ?>
-        <aside class="admin-sidebar" aria-label="<?= $portal_staff ? 'Staff sidebar' : 'Admin sidebar' ?>">
+        <aside class="admin-sidebar" id="portalSidebar" aria-label="<?= $portal_staff ? 'Staff sidebar' : 'Admin sidebar' ?>">
             <div class="admin-brand">
                 <img class="admin-mark" width="38" height="38" alt="Profile picture" src="<?= h((string) ($admin_avatar_src ?? '')) ?>">
                 <div>

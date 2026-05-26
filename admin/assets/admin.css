@@ -75,14 +75,7 @@ a:hover{ color: rgba(255,255,255,.95); }
   border-right: 1px solid var(--border);
   background: #0a0f18;
 }
-@media (max-width: 980px){
-  .admin-sidebar{
-    position: relative;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
+/* Mobile drawer nav — see “Portal mobile shell” section at end of file */
 
 .admin-brand{
   display:flex;
@@ -159,7 +152,7 @@ a:hover{ color: rgba(255,255,255,.95); }
   padding: 30px;
 }
 @media (max-width: 600px){
-  .admin-main{ padding: 18px; }
+  .admin-main{ padding: 14px 12px 20px; }
 }
 
 /* Directory-style pages: toolbar stays visible, table scrolls in the viewport */
@@ -4178,11 +4171,376 @@ input:focus, select:focus, textarea:focus{
   }
 }
 
+/* ── Portal mobile shell (admin, staff, student) ── */
+body:has(.admin-shell){
+  overflow-x: hidden;
+}
+
+.portal-mobile-bar{
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: max(10px, env(safe-area-inset-top, 0px)) 12px 10px;
+  border-bottom: 1px solid var(--border);
+  background: #0a0f18;
+  position: sticky;
+  top: 0;
+  z-index: 180;
+}
+.portal-menu-btn{
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  color: rgba(255,255,255,.92);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.portal-menu-btn:focus-visible{
+  outline: none;
+  box-shadow: var(--ring);
+}
+.portal-menu-btn svg{
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.portal-mobile-brand{
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 900;
+  font-size: .95rem;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.portal-sidebar-backdrop{
+  display: none;
+}
+
+@media (max-width: 979px){
+  .admin-shell > .portal-mobile-bar{
+    display: flex;
+  }
+  .admin-shell{
+    display: block;
+  }
+  .admin-shell > .admin-sidebar{
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 220;
+    width: min(288px, 90vw);
+    height: 100vh;
+    height: 100dvh;
+    margin: 0;
+    padding: 16px 14px;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    transform: translateX(-105%);
+    transition: transform .24s var(--ease-out);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 8px 0 32px rgba(0,0,0,.45);
+  }
+  body.portal-nav-open .admin-shell > .admin-sidebar{
+    transform: translateX(0);
+  }
+  .admin-shell > .portal-sidebar-backdrop{
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 210;
+    background: rgba(0,0,0,.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .24s ease;
+  }
+  body.portal-nav-open .admin-shell > .portal-sidebar-backdrop{
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.portal-nav-open{
+    overflow: hidden;
+  }
+  .admin-main.admin-page-list{
+    max-height: none;
+    overflow: visible;
+    display: block;
+  }
+  .admin-page-list .directory-list-scroll{
+    max-height: min(52vh, 28rem);
+  }
+}
+
+@media (min-width: 980px){
+  .portal-mobile-bar,
+  .portal-sidebar-backdrop{
+    display: none !important;
+  }
+}
+
+/* Compact layout — phones & small tablets */
+@media (max-width: 720px){
+  .admin-topbar{
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .admin-topbar h1{
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+  .admin-topbar .subtitle{
+    font-size: .9rem;
+    margin-top: 6px;
+  }
+  .dashboard-kicker{
+    font-size: .72rem;
+    margin-bottom: 4px;
+  }
+  .dashboard-topbar{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dashboard-topbar-aside,
+  .profile-topbar-aside{
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .dashboard-date-pill{
+    font-size: .78rem;
+    padding: 6px 10px;
+    white-space: normal;
+    text-align: center;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .card-body{
+    padding: 16px 14px;
+  }
+  .card-title{
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+  .grid{
+    gap: 14px;
+  }
+  .dashboard-stats{
+    gap: 12px;
+  }
+  .dashboard-stat .card-body{
+    padding: 14px 14px 12px;
+  }
+  .dashboard-stat-value{
+    font-size: 1.65rem;
+  }
+  .profile-hero-avatar{
+    width: 72px;
+    height: 72px;
+  }
+  .profile-hero-name{
+    font-size: 1.2rem;
+  }
+  .profile-hero-role{
+    font-size: .88rem;
+  }
+  .profile-tag{
+    font-size: .72rem;
+    padding: 4px 8px;
+  }
+  .dashboard-chart-canvas-wrap{
+    min-height: 200px;
+    height: min(220px, 42vh);
+  }
+  .table-wrap--dashboard-recent{
+    max-height: min(18rem, 45vh);
+  }
+  .card table,
+  .directory-data-table,
+  .users-directory-table{
+    font-size: .82rem;
+  }
+  .card table th,
+  .card table td,
+  .directory-data-table th,
+  .directory-data-table td,
+  .users-directory-table th,
+  .users-directory-table td{
+    padding: 8px 10px;
+  }
+  .pill{
+    font-size: .72rem;
+    padding: 3px 8px;
+  }
+  .card-header-bar{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .card-header-bar .btn{
+    width: 100%;
+    justify-content: center;
+  }
+  .inventory-tabs{
+    flex-wrap: wrap;
+  }
+  .directory-list-toolbar .row,
+  .directory-list-toolbar form{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  input,
+  select,
+  textarea{
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 400px){
+  .admin-topbar h1{
+    font-size: 1.2rem;
+  }
+  .profile-topbar-aside{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .student-edit-profile-btn{
+    width: 100%;
+  }
+}
+
+/* Modals — bottom sheet on narrow screens */
+@media (max-width: 520px){
+  .modal{
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-panel,
+  .modal-panel-account,
+  .modal-panel-user,
+  .modal-panel-book,
+  .modal-panel-issue,
+  .modal-panel-borrow,
+  .modal-panel-rfid-scan{
+    width: 100%;
+    max-width: 100%;
+    max-height: min(96dvh, 100%);
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    align-self: flex-end;
+  }
+  .modal-header{
+    padding: 14px 14px 10px;
+  }
+  .modal-body,
+  .modal-body-account,
+  .modal-body-user,
+  .modal-body-book{
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .profile-modal-tabs{
+    flex-wrap: wrap;
+  }
+  .profile-modal-tab{
+    flex: 1 1 auto;
+    text-align: center;
+    min-width: 0;
+  }
+  .user-modal-footer{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .user-modal-footer__actions{
+    width: 100%;
+    margin-left: 0;
+    justify-content: stretch;
+  }
+  .user-modal-footer__actions .btn{
+    flex: 1 1 auto;
+  }
+}
+
+/* Student profile edit button */
+.student-edit-profile-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .65rem 1.15rem;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 48%, #38bdf8 100%);
+  box-shadow:
+    0 4px 18px rgba(124, 58, 237, .45),
+    0 0 0 1px rgba(255, 255, 255, .12) inset;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.student-edit-profile-btn svg{
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.student-edit-profile-btn:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.student-edit-profile-btn:focus-visible{
+  outline: none;
+  box-shadow:
+    0 4px 18px rgba(124, 58, 237, .45),
+    0 0 0 3px rgba(124, 58, 237, .35);
+}
+.profile-topbar-aside{
+  align-items: center;
+  gap: .75rem;
+}
+@media (max-width: 640px){
+  .student-edit-profile-btn span.btn-label-long{
+    display: none;
+  }
+  .student-edit-profile-btn{
+    padding: .65rem .85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .admin-shell > .admin-sidebar,
+  .admin-shell > .portal-sidebar-backdrop{
+    transition: none;
+  }
+}
+
 /* Print */
 @media print{
   :root{ color-scheme: light; }
   body{ background:#fff !important; color:#000 !important; }
-  .admin-sidebar, .admin-actions, .btn, form, .modal{ display:none !important; }
+  .admin-sidebar, .portal-mobile-bar, .portal-sidebar-backdrop, .admin-actions, .btn, form, .modal{ display:none !important; }
   .admin-shell{ display:block; }
   .admin-main{ padding:0 !important; }
   .container{ max-width: none !important; }

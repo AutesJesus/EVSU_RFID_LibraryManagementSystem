@@ -404,7 +404,11 @@ header('Content-Type: text/html; charset=utf-8');
 </head>
 <body>
     <div class="admin-shell">
-        <aside class="admin-sidebar" aria-label="Admin sidebar">
+        <?php
+        $portal_mobile_brand = 'EVSU Library';
+        require __DIR__ . '/../includes/portal_mobile_nav.php';
+        ?>
+        <aside class="admin-sidebar" id="portalSidebar" aria-label="Admin sidebar">
             <div class="admin-brand">
                 <img class="admin-mark" width="38" height="38" alt="Admin profile picture" src="<?= h($admin_sidebar_avatar) ?>">
                 <div>
