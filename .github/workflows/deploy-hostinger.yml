@@ -79,6 +79,35 @@ jobs:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
           DB_NAME: ${{ secrets.DB_NAME }}
+
+      - name: Reject XAMPP-style database secrets
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          set -e
+          err=0
+          host_lc=$(printf '%s' "$DB_HOST" | tr '[:upper:]' '[:lower:]')
+          if [ "$host_lc" = "127.0.0.1" ] || [ "$host_lc" = "::1" ]; then
+            echo "::error::DB_HOST is XAMPP/local ($DB_HOST). Edit the DB_HOST secret → use localhost or the MySQL host from Hostinger hPanel → Databases."
+            err=1
+          fi
+          if [ "$DB_USER" = "root" ]; then
+            echo "::error::DB_USER is root (XAMPP). Edit DB_USER → use your Hostinger MySQL user (e.g. u710415762_library from hPanel, not root)."
+            err=1
+          fi
+          if [ "$DB_NAME" = "evsu_rfid_library" ]; then
+            echo "::error::DB_NAME is evsu_rfid_library (local XAMPP). Edit DB_NAME → use the database name created in Hostinger hPanel (starts with u)."
+            err=1
+          fi
+          case "$DB_USER" in
+            u*) ;;
+            *)
+              echo "::warning::DB_USER does not start with u — double-check it matches Hostinger hPanel → Databases."
+              ;;
+          esac
+          exit $err
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -109,6 +138,11 @@ jobs:
       - name: Verify production database config
         run: php scripts/verify-deploy-config.php
 
+      - name: Write deploy build marker
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: php scripts/ci-write-deploy-build.php
+
       - name: Write production email config
         env:
           MAIL_SMTP_USER: ${{ secrets.MAIL_SMTP_USER }}
@@ -131,6 +165,15 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
           bash scripts/deploy-rsync.sh
+          echo "Force-uploading config (db.local.php must not stay as old XAMPP copy)..."
+          scp -i "${SSH_IDENTITY_FILE}" -P "${SSH_PORT}" -o StrictHostKeyChecking=yes \
+            config/db.local.php config/deploy.build.php \
+            "${SSH_USER}@${SSH_HOST}:${SSH_REMOTE_PATH}/config/"
+          if [ -f config/mail.local.php ]; then
+            scp -i "${SSH_IDENTITY_FILE}" -P "${SSH_PORT}" -o StrictHostKeyChecking=yes \
+              config/mail.local.php \
+              "${SSH_USER}@${SSH_HOST}:${SSH_REMOTE_PATH}/config/"
+          fi
           echo "Verifying remote files..."
           ssh -i "${SSH_IDENTITY_FILE}" -p "${SSH_PORT}" -o StrictHostKeyChecking=yes \
             "${SSH_USER}@${SSH_HOST}" \
@@ -164,6 +207,23 @@ jobs:
               bye"
           }
           if try_dirs "${FTP_REMOTE_DIR}"; then
+            echo "Force-uploading config via FTP..."
+            lftp -u "${FTP_USERNAME}","${FTP_PASSWORD}" -e "\
+              set ssl:verify-certificate no; \
+              set ftp:ssl-allow true; \
+              open -p ${FTP_PORT} ftps://${FTP_SERVER}; \
+              cd \"${FTP_REMOTE_DIR}/config\"; \
+              put config/db.local.php; \
+              put config/mail.local.php; \
+              put config/deploy.build.php; \
+              bye"
+            echo "Verifying remote db.local.php is not XAMPP..."
+            lftp -u "${FTP_USERNAME}","${FTP_PASSWORD}" -e "\
+              set ssl:verify-certificate no; \
+              set ftp:ssl-allow true; \
+              open -p ${FTP_PORT} ftps://${FTP_SERVER}; \
+              cat \"${FTP_REMOTE_DIR}/config/db.local.php\" | head -20; \
+              bye" | grep -q "127.0.0.1" && { echo "::error::Remote db.local.php still contains 127.0.0.1"; exit 1; } || true
             echo "Deploy succeeded. Check: https://coral-seahorse-316772.hostingersite.com/site-test.php"
             exit 0
           fi

@@ -41,6 +41,24 @@ $checks[] = $run(
     is_file(__DIR__ . '/vendor/autoload.php') ? 'vendor/autoload.php found' : 'Run composer install before deploy'
 );
 
+$deployBuild = is_file(__DIR__ . '/config/deploy.build.php');
+$buildLabel = 'unknown';
+if ($deployBuild) {
+    require_once __DIR__ . '/config/deploy.build.php';
+    $buildLabel = defined('DEPLOY_BUILD') ? (string) DEPLOY_BUILD : '?';
+    if (defined('DEPLOY_TIME')) {
+        $buildLabel .= ' at ' . DEPLOY_TIME;
+    }
+}
+$checks[] = $run(
+    'deploy_build',
+    'Latest deploy reached server',
+    $deployBuild && defined('DEPLOY_BUILD'),
+    $deployBuild
+        ? 'Build ' . $buildLabel
+        : 'Missing config/deploy.build.php — push to master and wait for GitHub Actions deploy to finish'
+);
+
 $hasDbLocal = is_file(__DIR__ . '/config/db.local.php');
 $checks[] = $run(
     'db_config',
