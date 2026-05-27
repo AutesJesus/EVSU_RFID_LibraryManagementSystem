@@ -162,7 +162,7 @@ header('Content-Type: text/html; charset=utf-8');
                 <span class="login-brand-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>
                 </span>
-                <h1 id="loginTitle">Welcome back</h1>
+                <h1 id="loginTitle">Welcome back, user!</h1>
                 <p>Sign in to EVSU RFID Library</p>
             </header>
 
