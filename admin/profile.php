@@ -162,8 +162,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($new1 !== $new2) {
                 throw new RuntimeException('New passwords do not match.');
             }
-            if (strlen($new1) < 6) {
-                throw new RuntimeException('New password must be at least 6 characters.');
+            if (strlen($new1) < 8) {
+                throw new RuntimeException('New password must be at least 8 characters.');
+            }
+            if (!preg_match('/[A-Z]/', $new1)) {
+                throw new RuntimeException('Password must contain at least one uppercase letter.');
+            }
+            if (!preg_match('/[0-9]/', $new1)) {
+                throw new RuntimeException('Password must contain at least one number.');
+            }
+            if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $new1)) {
+                throw new RuntimeException('Password must contain at least one symbol.');
             }
 
             $stmt = $pdo->prepare('SELECT password_hash FROM admins WHERE id = :id');
@@ -765,10 +774,32 @@ header('Content-Type: text/html; charset=utf-8');
                         <input id="current_password" name="current_password" type="password" autocomplete="current-password" required>
 
                         <label for="new_password">New</label>
-                        <input id="new_password" name="new_password" type="password" autocomplete="new-password" required>
+                        <input id="new_password" name="new_password" type="password" autocomplete="new-password" required minlength="8">
+
+                        <div class="password-requirements" id="profilePasswordRequirements">
+                            <div class="password-requirements__title">Password must contain:</div>
+                            <div class="password-requirements__list">
+                                <div class="password-requirement" data-requirement="length">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least 8 characters</span>
+                                </div>
+                                <div class="password-requirement" data-requirement="uppercase">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least one uppercase letter</span>
+                                </div>
+                                <div class="password-requirement" data-requirement="symbol">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least one symbol</span>
+                                </div>
+                                <div class="password-requirement" data-requirement="number">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least one number</span>
+                                </div>
+                            </div>
+                        </div>
 
                         <label for="confirm_password">Confirm new</label>
-                        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required>
+                        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8">
 
                         <button class="btn btn-primary" type="submit">Update password</button>
                     </form>
@@ -809,6 +840,40 @@ header('Content-Type: text/html; charset=utf-8');
             }
             bind(document.getElementById('settingsProfileForm'));
             bind(document.getElementById('settingsPasswordForm'));
+
+            // Password requirements validation for profile
+            const newPasswordInput = document.getElementById('new_password');
+            const passwordRequirements = document.getElementById('profilePasswordRequirements');
+            if (passwordRequirements && newPasswordInput) {
+                const requirementEls = passwordRequirements.querySelectorAll('.password-requirement');
+
+                function validatePasswordRequirements(password) {
+                    const checks = {
+                        length: password.length >= 8,
+                        uppercase: /[A-Z]/.test(password),
+                        symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+                        number: /[0-9]/.test(password)
+                    };
+
+                    requirementEls.forEach(function (el) {
+                        const requirement = el.getAttribute('data-requirement');
+                        if (checks[requirement]) {
+                            el.classList.add('is-met');
+                        } else {
+                            el.classList.remove('is-met');
+                        }
+                    });
+
+                    return Object.values(checks).every(Boolean);
+                }
+
+                newPasswordInput.addEventListener('input', function () {
+                    validatePasswordRequirements(this.value);
+                });
+
+                // Initialize validation on page load
+                validatePasswordRequirements(newPasswordInput.value);
+            }
 
             var accountModal = document.getElementById('accountModal');
             var openBtn = document.getElementById('openAccountModal');

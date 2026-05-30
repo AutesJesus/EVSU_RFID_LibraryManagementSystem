@@ -177,8 +177,17 @@ function auth_password_reset_verify_and_update(
         $emailNorm = auth_password_reset_normalize_email($email);
 
         if ($uid > 0 && $rid > 0 && $exp >= time() && $em !== '' && hash_equals($em, $emailNorm)) {
-            if (strlen($newPassword) < 6) {
-                return ['ok' => false, 'error' => 'Password must be at least 6 characters.'];
+            if (strlen($newPassword) < 8) {
+                return ['ok' => false, 'error' => 'Password must be at least 8 characters.'];
+            }
+            if (!preg_match('/[A-Z]/', $newPassword)) {
+                return ['ok' => false, 'error' => 'Password must contain at least one uppercase letter.'];
+            }
+            if (!preg_match('/[0-9]/', $newPassword)) {
+                return ['ok' => false, 'error' => 'Password must contain at least one number.'];
+            }
+            if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $newPassword)) {
+                return ['ok' => false, 'error' => 'Password must contain at least one symbol.'];
             }
             if ($newPassword !== $confirmPassword) {
                 return ['ok' => false, 'error' => 'Password confirmation does not match.'];
@@ -220,8 +229,17 @@ function auth_password_reset_verify_and_update(
     if (strlen($code) !== PASSWORD_RESET_CODE_LENGTH) {
         return ['ok' => false, 'error' => 'Enter the ' . PASSWORD_RESET_CODE_LENGTH . '-digit code.' ];
     }
-    if (strlen($newPassword) < 6) {
-        return ['ok' => false, 'error' => 'Password must be at least 6 characters.' ];
+    if (strlen($newPassword) < 8) {
+        return ['ok' => false, 'error' => 'Password must be at least 8 characters.' ];
+    }
+    if (!preg_match('/[A-Z]/', $newPassword)) {
+        return ['ok' => false, 'error' => 'Password must contain at least one uppercase letter.' ];
+    }
+    if (!preg_match('/[0-9]/', $newPassword)) {
+        return ['ok' => false, 'error' => 'Password must contain at least one number.' ];
+    }
+    if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $newPassword)) {
+        return ['ok' => false, 'error' => 'Password must contain at least one symbol.' ];
     }
     if ($newPassword !== $confirmPassword) {
         return ['ok' => false, 'error' => 'Password confirmation does not match.' ];

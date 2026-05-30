@@ -142,6 +142,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if ($action === 'issue') {
+            // Prevent faculty from issuing books
+            if (portal_is_staff() && staff_current_role() === 'faculty') {
+                throw new RuntimeException('Faculty are not authorized to issue books.');
+            }
             $user_id = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
             $book_id = isset($_POST['book_id']) ? (int) $_POST['book_id'] : 0;
             $due_local = isset($_POST['due_at']) ? trim((string) $_POST['due_at']) : '';
@@ -686,7 +690,9 @@ header('Content-Type: text/html; charset=utf-8');
                            
 
                             <form method="get" action="" class="inventory-actionbar inventory-actionbar--borrow" role="search" aria-label="Borrowings search and filters">
+                                <?php if (!portal_is_staff() || staff_current_role() !== 'faculty'): ?>
                                 <button class="btn btn-primary inventory-add" type="button" data-open-issue>Issue Book</button>
+                                <?php endif; ?>
 
                                 <div class="inventory-search-wrap">
                                     <span class="inventory-search-ico" aria-hidden="true">

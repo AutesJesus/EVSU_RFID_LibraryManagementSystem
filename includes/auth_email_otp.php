@@ -49,6 +49,12 @@ function auth_start_patron_email_otp(array $user): array
         return ['ok' => false, 'error' => 'This account cannot sign in here.'];
     }
 
+    // Check if user has 2FA enabled
+    $otpEnabled = isset($user['otp_enabled']) ? (int) $user['otp_enabled'] : 1;
+    if ($otpEnabled !== 1) {
+        return ['ok' => false, 'error' => '2FA is disabled for this account.'];
+    }
+
     $code = (string) random_int(100000, 999999);
     $hash = password_hash($code, PASSWORD_DEFAULT);
 

@@ -142,8 +142,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($new1 !== $new2) {
                 throw new RuntimeException('New passwords do not match.');
             }
-            if (strlen($new1) < 6) {
-                throw new RuntimeException('New password must be at least 6 characters.');
+            if (strlen($new1) < 8) {
+                throw new RuntimeException('New password must be at least 8 characters.');
+            }
+            if (!preg_match('/[A-Z]/', $new1)) {
+                throw new RuntimeException('Password must contain at least one uppercase letter.');
+            }
+            if (!preg_match('/[0-9]/', $new1)) {
+                throw new RuntimeException('Password must contain at least one number.');
+            }
+            if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $new1)) {
+                throw new RuntimeException('Password must contain at least one symbol.');
             }
 
             $stmt = $pdo->prepare('SELECT password FROM users WHERE id = :id AND ' . $role_sql . ' LIMIT 1');
@@ -156,6 +165,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare('UPDATE users SET password = :h WHERE id = :id AND ' . $role_sql);
             $stmt->execute(['h' => password_hash($new1, PASSWORD_DEFAULT), 'id' => $user_id]);
             $flash = 'Password updated.';
+        } elseif ($action === 'toggle_2fa') {
+            $enabled = isset($_POST['otp_enabled']) ? (int) $_POST['otp_enabled'] : 0;
+            $enabled = $enabled === 1 ? 1 : 0;
+
+            $stmt = $pdo->prepare('UPDATE users SET otp_enabled = :enabled WHERE id = :id AND ' . $role_sql);
+            $stmt->execute(['enabled' => $enabled, 'id' => $user_id]);
+            $flash = $enabled === 1 ? '2FA enabled.' : '2FA disabled.';
         }
     } catch (Throwable $e) {
         $error = $e->getMessage();
@@ -484,6 +500,30 @@ header('Content-Type: text/html; charset=utf-8');
 
                         <button class="btn btn-primary" type="submit">Save profile</button>
                     </form>
+
+                    <hr style="margin: 24px 0;">
+
+                    <div class="two-factor-section">
+                        <h3 style="margin-bottom: 12px;">Two-Factor Authentication (2FA)</h3>
+                        <p class="hint" style="margin-bottom: 16px;">When enabled, you'll need to enter a code sent to your email when signing in.</p>
+
+                        <form method="post" action="" id="settings2faForm">
+                            <input type="hidden" name="action" value="toggle_2fa">
+                            <input type="hidden" name="otp_enabled" id="otp_enabled_input" value="<?= (int) ($profile['otp_enabled'] ?? 1) ?>">
+
+                            <div class="two-factor-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="otp_enabled_checkbox" <?= (int) ($profile['otp_enabled'] ?? 1) === 1 ? 'checked' : '' ?>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">
+                                    <strong>2FA is <?= (int) ($profile['otp_enabled'] ?? 1) === 1 ? 'enabled' : 'disabled' ?></strong>
+                                </span>
+                            </div>
+
+                            <button class="btn btn-primary" type="submit" style="margin-top: 16px;">Save 2FA setting</button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="profile-modal-pane" id="accountTabPassword" role="tabpanel" hidden>
@@ -494,10 +534,32 @@ header('Content-Type: text/html; charset=utf-8');
                         <input id="current_password" name="current_password" type="password" autocomplete="current-password" required>
 
                         <label for="new_password">New</label>
-                        <input id="new_password" name="new_password" type="password" autocomplete="new-password" required>
+                        <input id="new_password" name="new_password" type="password" autocomplete="new-password" required minlength="8">
+
+                        <div class="password-requirements" id="facultyPasswordRequirements">
+                            <div class="password-requirements__title">Password must contain:</div>
+                            <div class="password-requirements__list">
+                                <div class="password-requirement" data-requirement="length">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least 8 characters</span>
+                                </div>
+                                <div class="password-requirement" data-requirement="uppercase">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least one uppercase letter</span>
+                                </div>
+                                <div class="password-requirement" data-requirement="symbol">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least one symbol</span>
+                                </div>
+                                <div class="password-requirement" data-requirement="number">
+                                    <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                    <span class="password-requirement__text">At least one number</span>
+                                </div>
+                            </div>
+                        </div>
 
                         <label for="confirm_password">Confirm new</label>
-                        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required>
+                        <input id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required minlength="8">
 
                         <button class="btn btn-primary" type="submit">Update password</button>
                     </form>
@@ -528,6 +590,52 @@ header('Content-Type: text/html; charset=utf-8');
             }
             bind(document.getElementById('settingsProfileForm'));
             bind(document.getElementById('settingsPasswordForm'));
+            bind(document.getElementById('settings2faForm'));
+
+            // 2FA toggle checkbox handler
+            const otpCheckbox = document.getElementById('otp_enabled_checkbox');
+            const otpInput = document.getElementById('otp_enabled_input');
+            const otpLabel = document.querySelector('.toggle-label strong');
+            if (otpCheckbox && otpInput && otpLabel) {
+                otpCheckbox.addEventListener('change', function () {
+                    otpInput.value = this.checked ? '1' : '0';
+                    otpLabel.textContent = '2FA is ' + (this.checked ? 'enabled' : 'disabled');
+                });
+            }
+
+            // Password requirements validation for faculty
+            const newPasswordInput = document.getElementById('new_password');
+            const passwordRequirements = document.getElementById('facultyPasswordRequirements');
+            if (passwordRequirements && newPasswordInput) {
+                const requirementEls = passwordRequirements.querySelectorAll('.password-requirement');
+
+                function validatePasswordRequirements(password) {
+                    const checks = {
+                        length: password.length >= 8,
+                        uppercase: /[A-Z]/.test(password),
+                        symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+                        number: /[0-9]/.test(password)
+                    };
+
+                    requirementEls.forEach(function (el) {
+                        const requirement = el.getAttribute('data-requirement');
+                        if (checks[requirement]) {
+                            el.classList.add('is-met');
+                        } else {
+                            el.classList.remove('is-met');
+                        }
+                    });
+
+                    return Object.values(checks).every(Boolean);
+                }
+
+                newPasswordInput.addEventListener('input', function () {
+                    validatePasswordRequirements(this.value);
+                });
+
+                // Initialize validation on page load
+                validatePasswordRequirements(newPasswordInput.value);
+            }
 
             var accountModal = document.getElementById('accountModal');
             function openModal(el) {

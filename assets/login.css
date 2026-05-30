@@ -421,3 +421,62 @@ body.auth-rfid-step .auth-rfid-overlay {
 body.auth-otp-step .login-brand p strong {
     word-break: break-word;
 }
+
+/* Password requirements */
+.password-requirements{
+    margin-top: 8px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.22);
+    border: 1px solid rgba(255,255,255,.08);
+}
+.password-requirements__title{
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: rgba(255,255,255,.7);
+    margin: 0 0 10px;
+    text-transform: uppercase;
+}
+.password-requirements__list{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.password-requirement{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .82rem;
+    color: rgba(255,255,255,.55);
+    transition: color .16s ease;
+}
+.password-requirement__check{
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    color: transparent;
+    font-weight: 700;
+    font-size: .75rem;
+    flex-shrink: 0;
+    transition:
+        background .16s ease,
+        border-color .16s ease,
+        color .16s ease;
+}
+.password-requirement.is-met{
+    color: rgba(134,239,172,.95);
+}
+.password-requirement.is-met .password-requirement__check{
+    background: rgba(34,197,94,.2);
+    border-color: rgba(34,197,94,.45);
+    color: rgba(134,239,172,.98);
+}

@@ -36,6 +36,13 @@ function ui_avatar_url(string $name): string
 
 function admin_avatar_src(PDO $pdo, int $admin_id, string $fallback_username): string
 {
+
+
+
+
+
+
+
     $stmt = $pdo->prepare('SELECT username, avatar_path FROM admins WHERE id = :id');
     $stmt->execute(['id' => $admin_id]);
     $row = $stmt->fetch() ?: [];
@@ -147,7 +154,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($action === 'add' || $action === 'edit') {
             $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
-            $full_name = isset($_POST['full_name']) ? trim((string) $_POST['full_name']) : '';
+            $first_name = isset($_POST['first_name']) ? trim((string) $_POST['first_name']) : '';
+            $last_name = isset($_POST['last_name']) ? trim((string) $_POST['last_name']) : '';
+            $full_name = trim($first_name . ' ' . $last_name);
             $email = isset($_POST['email']) ? trim((string) $_POST['email']) : '';
             $rfid_tag = isset($_POST['rfid_tag']) ? trim((string) $_POST['rfid_tag']) : '';
             $role = normalize_role(isset($_POST['role']) ? (string) $_POST['role'] : '');
@@ -156,8 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password = isset($_POST['password']) ? (string) $_POST['password'] : '';
             $status = normalize_status(isset($_POST['status']) ? (string) $_POST['status'] : 'active');
 
-            if ($full_name === '' || $rfid_tag === '' || $department === '') {
-                throw new RuntimeException('Full name, RFID tag, and department are required.');
+            if ($first_name === '' || $last_name === '' || $rfid_tag === '' || $department === '') {
+                throw new RuntimeException('First name, last name, RFID tag, and department are required.');
             }
 
             $needs_login = in_array($role, ['student', 'faculty', 'librarian'], true);
@@ -167,6 +176,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if ($action === 'add' && trim($password) === '') {
                     throw new RuntimeException('Password is required when adding a new user.');
+                }
+                if ($action === 'add' && trim($password) !== '') {
+                    // Validate password requirements
+                    if (strlen($password) < 8) {
+                        throw new RuntimeException('Password must be at least 8 characters long.');
+                    }
+                    if (!preg_match('/[A-Z]/', $password)) {
+                        throw new RuntimeException('Password must contain at least one uppercase letter.');
+                    }
+                    if (!preg_match('/[0-9]/', $password)) {
+                        throw new RuntimeException('Password must contain at least one number.');
+                    }
+                    if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $password)) {
+                        throw new RuntimeException('Password must contain at least one symbol.');
+                    }
                 }
             }
 
@@ -601,12 +625,13 @@ header('Content-Type: text/html; charset=utf-8');
                                         <th class="users-col-dept">Dept</th>
                                         <th class="users-col-user">Username</th>
                                         <th>Status</th>
+                                        <th>2FA</th>
                                         <th>Created</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                 <?php if (!$users): ?>
-                                    <tr><td colspan="10" class="muted">No users yet.</td></tr>
+                                    <tr><td colspan="11" class="muted">No users yet.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($users as $u): ?>
                                         <?php
@@ -628,6 +653,7 @@ header('Content-Type: text/html; charset=utf-8');
                                                 'username' => (string)($u['username'] ?? ''),
                                                 'status' => (string)$u['status'],
                                                 'created_at' => (string)$u['created_at'],
+                                                'otp_enabled' => (int)($u['otp_enabled'] ?? 1),
                                                 'avatar_src' => $row_avatar,
                                             ], JSON_UNESCAPED_SLASHES)) ?>'
                                         >
@@ -656,6 +682,13 @@ header('Content-Type: text/html; charset=utf-8');
                                                     <span class="pill ok">active</span>
                                                 <?php else: ?>
                                                     <span class="pill bad">inactive</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ((int)($u['otp_enabled'] ?? 1) === 1): ?>
+                                                    <span class="pill ok">On</span>
+                                                <?php else: ?>
+                                                    <span class="pill bad">Off</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?= h((string)$u['created_at']) ?></td>
@@ -740,8 +773,13 @@ header('Content-Type: text/html; charset=utf-8');
 
                             <div class="user-form-grid">
                                 <div class="user-field">
-                                    <label for="userFullName">Full name <span class="req" aria-hidden="true">*</span></label>
-                                    <input id="userFullName" name="full_name" required minlength="2" autocomplete="name" value="" placeholder="Enter full name">
+                                    <label for="userFirstName">First name <span class="req" aria-hidden="true">*</span></label>
+                                    <input id="userFirstName" name="first_name" required minlength="2" autocomplete="given-name" value="" placeholder="Enter first name">
+                                </div>
+
+                                <div class="user-field">
+                                    <label for="userLastName">Last name <span class="req" aria-hidden="true">*</span></label>
+                                    <input id="userLastName" name="last_name" required minlength="2" autocomplete="family-name" value="" placeholder="Enter last name">
                                 </div>
 
                                 <div class="user-field">
@@ -792,12 +830,33 @@ header('Content-Type: text/html; charset=utf-8');
                                 <div class="user-field user-field--span2" id="userPasswordFieldWrap">
                                     <label for="userPassword">Password <span class="req" aria-hidden="true">*</span></label>
                                     <div class="user-password-wrap">
-                                        <input id="userPassword" name="password" type="password" value="" minlength="6" autocomplete="new-password" placeholder="Enter password">
+                                        <input id="userPassword" name="password" type="password" value="" minlength="8" autocomplete="new-password" placeholder="Enter password">
                                         <button class="user-password-toggle" type="button" id="userPasswordToggle" aria-label="Show password">
                                             <svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                                         </button>
                                     </div>
                                     <div class="hint" id="userPasswordHint">Required when adding a new user. Hidden when editing.</div>
+                                    <div class="password-requirements" id="passwordRequirements">
+                                        <div class="password-requirements__title">Password must contain:</div>
+                                        <div class="password-requirements__list">
+                                            <div class="password-requirement" data-requirement="length">
+                                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                                <span class="password-requirement__text">At least 8 characters</span>
+                                            </div>
+                                            <div class="password-requirement" data-requirement="uppercase">
+                                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                                <span class="password-requirement__text">At least one uppercase letter</span>
+                                            </div>
+                                            <div class="password-requirement" data-requirement="symbol">
+                                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                                <span class="password-requirement__text">At least one symbol</span>
+                                            </div>
+                                            <div class="password-requirement" data-requirement="number">
+                                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                                <span class="password-requirement__text">At least one number</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </section>
@@ -1000,7 +1059,8 @@ header('Content-Type: text/html; charset=utf-8');
             const userPhotoDrop = document.getElementById('userPhotoDrop');
 
             const fields = {
-                full_name: document.getElementById('userFullName'),
+                first_name: document.getElementById('userFirstName'),
+                last_name: document.getElementById('userLastName'),
                 email: document.getElementById('userEmail'),
                 rfid_tag: document.getElementById('userRfid'),
                 role: document.getElementById('userRole'),
@@ -1042,7 +1102,10 @@ header('Content-Type: text/html; charset=utf-8');
                 userForm.reset();
                 userFormAction.value = 'edit';
                 userId.value = u.id;
-                fields.full_name.value = u.full_name || '';
+                // Split full_name into first_name and last_name
+                var nameParts = (u.full_name || '').trim().split(/\s+/);
+                fields.first_name.value = nameParts[0] || '';
+                fields.last_name.value = nameParts.slice(1).join(' ') || '';
                 fields.email.value = u.email || '';
                 fields.rfid_tag.value = u.rfid_tag || '';
                 fields.role.value = u.role || 'student';
@@ -1087,6 +1150,39 @@ header('Content-Type: text/html; charset=utf-8');
                     fields.password.focus();
                 });
                 setPasswordToggleState(false);
+            }
+
+            // Password requirements validation
+            const passwordRequirements = document.getElementById('passwordRequirements');
+            if (passwordRequirements && fields.password) {
+                const requirementEls = passwordRequirements.querySelectorAll('.password-requirement');
+
+                function validatePasswordRequirements(password) {
+                    const checks = {
+                        length: password.length >= 8,
+                        uppercase: /[A-Z]/.test(password),
+                        symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+                        number: /[0-9]/.test(password)
+                    };
+
+                    requirementEls.forEach(function (el) {
+                        const requirement = el.getAttribute('data-requirement');
+                        if (checks[requirement]) {
+                            el.classList.add('is-met');
+                        } else {
+                            el.classList.remove('is-met');
+                        }
+                    });
+
+                    return Object.values(checks).every(Boolean);
+                }
+
+                fields.password.addEventListener('input', function () {
+                    validatePasswordRequirements(this.value);
+                });
+
+                // Initialize validation on page load
+                validatePasswordRequirements(fields.password.value);
             }
 
             if (userAvatarInput && userAvatarPreview) {

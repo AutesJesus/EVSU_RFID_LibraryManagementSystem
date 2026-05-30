@@ -258,7 +258,7 @@ header('Content-Type: text/html; charset=utf-8');
                                 name="password"
                                 type="password"
                                 autocomplete="new-password"
-                                minlength="6"
+                                minlength="8"
                                 required
                                 placeholder="Enter new password"
                             >
@@ -266,6 +266,28 @@ header('Content-Type: text/html; charset=utf-8');
                                 <svg class="icon-show" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 <svg class="icon-hide" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>
                             </button>
+                        </div>
+                    </div>
+
+                    <div class="password-requirements" id="forgotPasswordRequirements">
+                        <div class="password-requirements__title">Password must contain:</div>
+                        <div class="password-requirements__list">
+                            <div class="password-requirement" data-requirement="length">
+                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                <span class="password-requirement__text">At least 8 characters</span>
+                            </div>
+                            <div class="password-requirement" data-requirement="uppercase">
+                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                <span class="password-requirement__text">At least one uppercase letter</span>
+                            </div>
+                            <div class="password-requirement" data-requirement="symbol">
+                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                <span class="password-requirement__text">At least one symbol</span>
+                            </div>
+                            <div class="password-requirement" data-requirement="number">
+                                <span class="password-requirement__check" aria-hidden="true">✓</span>
+                                <span class="password-requirement__text">At least one number</span>
+                            </div>
                         </div>
                     </div>
 
@@ -280,7 +302,7 @@ header('Content-Type: text/html; charset=utf-8');
                                 name="password_confirm"
                                 type="password"
                                 autocomplete="new-password"
-                                minlength="6"
+                                minlength="8"
                                 required
                                 placeholder="Confirm new password"
                             >
@@ -364,6 +386,40 @@ header('Content-Type: text/html; charset=utf-8');
             }
             togglePw('password', 'togglePw1');
             togglePw('password_confirm', 'togglePw2');
+
+            // Password requirements validation for forgot password
+            const passwordInput = document.getElementById('password');
+            const passwordRequirements = document.getElementById('forgotPasswordRequirements');
+            if (passwordRequirements && passwordInput) {
+                const requirementEls = passwordRequirements.querySelectorAll('.password-requirement');
+
+                function validatePasswordRequirements(password) {
+                    const checks = {
+                        length: password.length >= 8,
+                        uppercase: /[A-Z]/.test(password),
+                        symbol: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+                        number: /[0-9]/.test(password)
+                    };
+
+                    requirementEls.forEach(function (el) {
+                        const requirement = el.getAttribute('data-requirement');
+                        if (checks[requirement]) {
+                            el.classList.add('is-met');
+                        } else {
+                            el.classList.remove('is-met');
+                        }
+                    });
+
+                    return Object.values(checks).every(Boolean);
+                }
+
+                passwordInput.addEventListener('input', function () {
+                    validatePasswordRequirements(this.value);
+                });
+
+                // Initialize validation on page load
+                validatePasswordRequirements(passwordInput.value);
+            }
         })();
     </script>
 </body>

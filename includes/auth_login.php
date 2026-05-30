@@ -48,7 +48,7 @@ function auth_login_patron(PDO $pdo, string $login, string $password): array
     }
 
     $stmt = $pdo->prepare(
-        "SELECT id, full_name, username, password, role, status, email
+        "SELECT id, full_name, username, password, role, status, email, otp_enabled
          FROM users
          WHERE status = 'active'
            AND (
@@ -67,6 +67,18 @@ function auth_login_patron(PDO $pdo, string $login, string $password): array
     $role = (string) ($u['role'] ?? '');
     if (!in_array($role, ['student', 'faculty', 'librarian'], true)) {
         return ['ok' => false, 'error' => 'This account cannot sign in here.'];
+    }
+
+    // Check if 2FA is enabled
+    $otpEnabled = isset($u['otp_enabled']) ? (int) $u['otp_enabled'] : 1;
+    if ($otpEnabled !== 1) {
+        // 2FA is disabled, log in directly
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = (int) $u['id'];
+        $_SESSION['user_full_name'] = (string) $u['full_name'];
+        $_SESSION['user_role'] = $role;
+        $redirect = $role === 'student' ? 'student/index.php' : 'faculty/index.php';
+        return ['ok' => true, 'redirect' => $redirect];
     }
 
     return auth_start_patron_email_otp($u);

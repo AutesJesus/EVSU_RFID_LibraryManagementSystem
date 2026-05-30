@@ -299,46 +299,40 @@ if ($edit_id > 0) {
     $edit_book = $stmt->fetch() ?: null;
 }
 
-$genre_options = [];
-try {
-    $go = $pdo->query(
-        "SELECT DISTINCT genre FROM books WHERE genre IS NOT NULL AND TRIM(genre) <> '' ORDER BY genre ASC LIMIT 48"
-    );
-    foreach ($go->fetchAll(PDO::FETCH_COLUMN) as $g) {
-        $g = trim((string) $g);
-        if ($g !== '') {
-            $genre_options[] = $g;
-        }
-    }
-    $genre_options = array_values(array_unique($genre_options, SORT_STRING));
-} catch (Throwable $e) {
-    $genre_options = [];
-}
+$genre_options = [
+    'Action', 'Adventure', 'Anthology', 'Art', 'Autobiography', 'Biography', 'Business',
+    'Children\'s Fiction', 'Classic', 'Comic', 'Coming-of-Age', 'Contemporary Fiction',
+    'Cooking', 'Crafts & Hobbies', 'Crime', 'Drama', 'Dystopian', 'Education',
+    'Essay Collection', 'Fairy Tale', 'Fantasy', 'Folklore', 'Geography', 'Graphic Novel',
+    'Guidebook', 'Health & Fitness', 'Historical Fiction', 'History', 'Horror', 'Humor',
+    'Journalism', 'Language Learning', 'Law', 'Literary Fiction', 'Magic Realism',
+    'Memoir', 'Music', 'Mystery', 'Mythology', 'Nature', 'Parenting', 'Paranormal',
+    'Personal Development', 'Philosophy', 'Poetry', 'Politics', 'Psychological Fiction',
+    'Psychology', 'Reference', 'Religion & Spirituality', 'Romance', 'Satire', 'Science',
+    'Science Fiction', 'Self-Help', 'Short Stories', 'Social Sciences', 'Sports',
+    'Suspense', 'Technology', 'Thriller', 'Travel', 'True Crime', 'Urban Fantasy',
+    'War Fiction', 'Western', 'Women\'s Fiction', 'Young Adult (YA)', 'New Adult',
+    'Textbook', 'Research', 'Accounting', 'Architecture', 'Astronomy', 'Biology',
+    'Chemistry', 'Computer Science', 'Economics', 'Engineering', 'Linguistics',
+    'Mathematics', 'Medicine', 'Physics', 'Statistics', 'Diary', 'Encyclopedia',
+    'Journal', 'Magazine', 'Prayer Book', 'Reference Manual', 'Screenplay',
+    'Workbook', 'Speculative Fiction', 'Other'
+];
 
-$language_options = [];
-try {
-    $lo = $pdo->query(
-        "SELECT DISTINCT language FROM books WHERE language IS NOT NULL AND TRIM(language) <> '' ORDER BY language ASC LIMIT 32"
-    );
-    foreach ($lo->fetchAll(PDO::FETCH_COLUMN) as $ln) {
-        $ln = trim((string) $ln);
-        if ($ln !== '') {
-            $language_options[] = $ln;
-        }
-    }
-    $language_options = array_values(array_unique($language_options, SORT_STRING));
-} catch (Throwable $e) {
-    $language_options = [];
-}
+$language_options = [
+    'English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Dutch',
+    'Russian', 'Ukrainian', 'Polish', 'Czech', 'Slovak', 'Hungarian', 'Romanian',
+    'Bulgarian', 'Greek', 'Turkish', 'Arabic', 'Hebrew', 'Persian (Farsi)', 'Urdu',
+    'Hindi', 'Bengali', 'Punjabi', 'Gujarati', 'Marathi', 'Tamil', 'Telugu', 'Kannada',
+    'Malayalam', 'Sinhala', 'Nepali', 'Chinese (Simplified)', 'Chinese (Traditional)',
+    'Japanese', 'Korean', 'Thai', 'Vietnamese', 'Indonesian', 'Malay',
+    'Filipino/Tagalog', 'Swahili', 'Afrikaans', 'Zulu', 'Xhosa', 'Yoruba', 'Igbo',
+    'Hausa', 'Amharic', 'Somali', 'Latin', 'Esperanto', 'Multiple Languages', 'Other',
+    'Unknown'
+];
 
-$book_genre_datalist = array_values(array_unique(array_merge(
-    $genre_options,
-    ['Fiction', 'Non-fiction', 'Science & Technology', 'History', 'Biography', 'Reference', 'Education']
-), SORT_STRING));
-$book_language_datalist = array_values(array_unique(array_merge(
-    $language_options,
-    ['English', 'Filipino', 'Spanish', 'French', 'Other']
-), SORT_STRING));
+$book_genre_datalist = $genre_options;
+$book_language_datalist = $language_options;
 
 $genre_f = isset($_GET['genre']) ? trim((string) $_GET['genre']) : '';
 if ($genre_f !== '' && !in_array($genre_f, $genre_options, true)) {
@@ -834,24 +828,24 @@ header('Content-Type: text/html; charset=utf-8');
                                     <div class="book-field">
                                         <label class="book-field__label" for="bookGenre">Genre <span class="req" aria-hidden="true">*</span></label>
                                         <div class="book-field-select">
-                                            <input id="bookGenre" name="genre" value="" list="bookGenreList" placeholder="Select or type genre…" autocomplete="off">
-                                            <datalist id="bookGenreList">
-                                                <?php foreach ($book_genre_datalist as $g): ?>
-                                                    <option value="<?= h($g) ?>"></option>
+                                            <select id="bookGenre" name="genre" required>
+                                                <option value="">Select genre…</option>
+                                                <?php foreach ($genre_options as $g): ?>
+                                                    <option value="<?= h($g) ?>"><?= h($g) ?></option>
                                                 <?php endforeach; ?>
-                                            </datalist>
+                                            </select>
                                             <span class="book-field-select__chev" aria-hidden="true"></span>
                                         </div>
                                     </div>
                                     <div class="book-field">
                                         <label class="book-field__label" for="bookLanguage">Language <span class="req" aria-hidden="true">*</span></label>
                                         <div class="book-field-select">
-                                            <input id="bookLanguage" name="language" value="" list="bookLanguageList" placeholder="Select language…" autocomplete="off">
-                                            <datalist id="bookLanguageList">
-                                                <?php foreach ($book_language_datalist as $ln): ?>
-                                                    <option value="<?= h($ln) ?>"></option>
+                                            <select id="bookLanguage" name="language" required>
+                                                <option value="">Select language…</option>
+                                                <?php foreach ($language_options as $ln): ?>
+                                                    <option value="<?= h($ln) ?>"><?= h($ln) ?></option>
                                                 <?php endforeach; ?>
-                                            </datalist>
+                                            </select>
                                             <span class="book-field-select__chev" aria-hidden="true"></span>
                                         </div>
                                     </div>
